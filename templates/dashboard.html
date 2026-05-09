@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 
-{% block title %}Dashboard — Coin Purse{% endblock %}
-{% block nav_dashboard %}font-semibold !text-white{% endblock %}
+{% block title %}Dashboard - Coin Purse{% endblock %}
+{% block nav_dashboard %}nav-active{% endblock %}
 
 {% block header_right %}
   {{ as_of.strftime("%B %d, %Y") }}
@@ -9,232 +10,205 @@
 
 {% block content %}
 
-{# ── Page heading ─────────────────────────────────────────── #}
 <div class="mb-6">
-  <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
-  <p class="text-slate-500 text-sm mt-0.5">{{ as_of.strftime("%A, %B %d, %Y") }}</p>
+  <h1 class="serif text-3xl font-bold">Dashboard</h1>
+  <p class="muted-ink text-sm mt-0.5">{{ as_of.strftime("%A, %B %d, %Y") }}</p>
 </div>
 
-{# ── Summary stat cards ────────────────────────────────────── #}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Net Worth</p>
-    <p class="mt-2 text-2xl font-bold {{ 'text-emerald-600' if net_worth | float >= 0 else 'text-rose-600' }}">
+  {% call ui.note("green", "p-5", "left") %}
+    <p class="section-label">Net Worth</p>
+    <p class="amount mt-2 text-2xl {{ 'ink-positive' if net_worth | float >= 0 else 'ink-negative' }}">
       {{ net_worth | currency }}
     </p>
-  </div>
+  {% endcall %}
 
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-      {{ current_month.month | month_name }} Income
-    </p>
-    <p class="mt-2 text-2xl font-bold text-emerald-600">{{ current_month.income | currency }}</p>
-  </div>
+  {% call ui.note("yellow", "p-5", "soft-right") %}
+    <p class="section-label">{{ current_month.month | month_name }} Income</p>
+    <p class="amount mt-2 text-2xl ink-positive">{{ current_month.income | currency }}</p>
+  {% endcall %}
 
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-      {{ current_month.month | month_name }} Expenses
-    </p>
-    <p class="mt-2 text-2xl font-bold text-rose-600">{{ current_month.expense | currency }}</p>
-  </div>
+  {% call ui.note("pink", "p-5", "soft-left") %}
+    <p class="section-label">{{ current_month.month | month_name }} Expenses</p>
+    <p class="amount mt-2 text-2xl ink-negative">{{ current_month.expense | currency }}</p>
+  {% endcall %}
 
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-      {{ current_month.month | month_name }} Net
-    </p>
-    <p class="mt-2 text-2xl font-bold {{ 'text-emerald-600' if current_month.net | float >= 0 else 'text-rose-600' }}">
+  {% call ui.note("peach", "p-5", "right") %}
+    <p class="section-label">{{ current_month.month | month_name }} Net</p>
+    <p class="amount mt-2 text-2xl {{ 'ink-positive' if current_month.net | float >= 0 else 'ink-negative' }}">
       {{ current_month.net | currency }}
     </p>
-  </div>
+  {% endcall %}
 
 </div>
 
-{# ── Main two-column grid ──────────────────────────────────── #}
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-  {# Left column – accounts + budget (3 / 5) #}
   <div class="lg:col-span-3 space-y-6">
 
-    {# Accounts card #}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-100">
-        <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Accounts</h2>
+    {% call ui.note("blue", "overflow-hidden", "soft-left") %}
+      <div class="note-header">
+        <h2 class="section-label">Accounts</h2>
       </div>
       {% if accounts %}
-      <ul class="divide-y divide-slate-100">
+      <ul>
         {% for acct in accounts %}
-        <li class="px-5 py-3 flex items-center justify-between">
+        <li class="note-row flex items-center justify-between gap-4">
           <div>
-            <p class="text-sm font-medium text-slate-800">{{ acct.account_name }}</p>
-            <p class="text-xs text-slate-400 capitalize mt-0.5">{{ acct.account_type }}</p>
+            <p class="text-sm font-semibold">{{ acct.account_name }}</p>
+            <p class="text-xs muted-ink capitalize mt-0.5">{{ acct.account_type }}</p>
           </div>
-          <span class="text-sm font-semibold {{ 'text-emerald-600' if acct.current_balance | float >= 0 else 'text-rose-600' }}">
+          <span class="amount text-lg {{ 'ink-positive' if acct.current_balance | float >= 0 else 'ink-negative' }}">
             {{ acct.current_balance | currency }}
           </span>
         </li>
         {% endfor %}
       </ul>
       {% else %}
-      <p class="px-5 py-4 text-sm text-slate-400">No accounts set up yet.</p>
+      <p class="px-5 py-4 text-sm muted-ink">No accounts set up yet.</p>
       {% endif %}
-    </div>
+    {% endcall %}
 
-    {# Active Budget card #}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-        <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Budget</h2>
+    {% call ui.note("yellow", "overflow-hidden", "soft-right") %}
+      <div class="note-header flex items-center justify-between gap-4">
+        <h2 class="section-label">Active Budget</h2>
         {% if active_budget %}
-        <span class="text-xs text-slate-400">
-          {{ active_budget.period_start.strftime("%b %d") }} – {{ active_budget.period_end.strftime("%b %d") }}
-          &nbsp;·&nbsp; {{ active_budget.days_remaining }} days left
+        <span class="text-xs muted-ink">
+          {{ active_budget.period_start.strftime("%b %d") }} - {{ active_budget.period_end.strftime("%b %d") }}
+          &middot; {{ active_budget.days_remaining }} days left
         </span>
         {% endif %}
       </div>
 
       {% if active_budget %}
-
-      {# Budget summary row #}
-      <div class="px-5 py-3 bg-slate-50 border-b border-slate-100">
-        <p class="text-sm font-semibold text-slate-700 mb-2">{{ active_budget.budget_name }}</p>
-        <div class="flex items-center gap-6 text-sm mb-2 flex-wrap">
-          <span class="text-slate-500">
-            Limit <span class="font-semibold text-slate-700">{{ active_budget.summary.total_limit | currency }}</span>
-          </span>
-          <span class="text-slate-500">
-            Spent <span class="font-semibold text-slate-700">{{ active_budget.summary.total_spent | currency }}</span>
-          </span>
+      <div class="px-5 py-3 border-b border-dashed" style="border-color: rgba(0,0,0,0.12);">
+        <p class="serif text-lg font-semibold mb-2">{{ active_budget.budget_name }}</p>
+        <div class="flex items-center gap-6 text-sm mb-3 flex-wrap muted-ink">
+          <span>Limit <span class="amount">{{ active_budget.summary.total_limit | currency }}</span></span>
+          <span>Spent <span class="amount">{{ active_budget.summary.total_spent | currency }}</span></span>
           {% set rem = active_budget.summary.total_remaining | float %}
-          <span class="text-slate-500">
+          <span>
             Left
-            <span class="font-semibold {{ 'text-emerald-600' if rem >= 0 else 'text-rose-600' }}">
+            <span class="amount {{ 'ink-positive' if rem >= 0 else 'ink-negative' }}">
               {{ active_budget.summary.total_remaining | currency }}
             </span>
           </span>
         </div>
-        {# Overall progress bar #}
         {% set overall_pct = [active_budget.summary.percent_used | float, 100.0] | min %}
-        <div class="w-full bg-slate-200 rounded-full h-2">
+        <div class="ink-track">
           <div
-            class="{{ 'bg-rose-500' if active_budget.summary.percent_used | float > 100 else 'bg-indigo-500' }} h-2 rounded-full transition-all"
+            class="ink-fill {{ 'ink-fill-red' if active_budget.summary.percent_used | float > 100 else '' }}"
             style="width: {{ overall_pct }}%">
           </div>
         </div>
-        <p class="text-xs text-slate-400 mt-1">{{ active_budget.summary.percent_used }}% of budget used</p>
+        <p class="text-xs muted-ink mt-1">{{ active_budget.summary.percent_used }}% of budget used</p>
       </div>
 
-      {# Budget items #}
       {% if active_budget['items'] %}
-      <ul class="divide-y divide-slate-100">
+      <ul>
         {% for item in active_budget['items'] %}
-        <li class="px-5 py-3">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-sm font-medium text-slate-700">{{ item.category_name }}</span>
+        <li class="note-row">
+          <div class="flex items-center justify-between gap-3 mb-1.5">
+            <span class="text-sm font-medium">{{ item.category_name }}</span>
             <div class="text-right">
-              <span class="text-sm font-semibold {{ 'text-rose-600' if item.over_budget else 'text-slate-800' }}">
+              <span class="amount text-base {{ 'ink-negative' if item.over_budget else '' }}">
                 {{ item.spent | currency }}
               </span>
-              <span class="text-xs text-slate-400"> / {{ item.limit | currency }}</span>
+              <span class="text-xs muted-ink"> / <span class="amount">{{ item.limit | currency }}</span></span>
               {% if item.over_budget %}
-              <span class="ml-1.5 text-xs font-bold bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded">OVER</span>
+              {{ ui.stamp("over", "OVER", "ml-1.5") }}
               {% endif %}
             </div>
           </div>
           {% set item_pct = [item.percent_used | float, 100.0] | min %}
           {% if item.over_budget %}
-            {% set bar = "bg-rose-500" %}
+            {% set bar = "ink-fill-red" %}
           {% elif item.percent_used | float > 75 %}
-            {% set bar = "bg-amber-400" %}
+            {% set bar = "ink-fill-gold" %}
           {% else %}
-            {% set bar = "bg-emerald-500" %}
+            {% set bar = "ink-fill-green" %}
           {% endif %}
-          <div class="w-full bg-slate-200 rounded-full h-1.5">
-            <div class="{{ bar }} h-1.5 rounded-full" style="width: {{ item_pct }}%"></div>
+          <div class="ink-track">
+            <div class="ink-fill {{ bar }}" style="width: {{ item_pct }}%"></div>
           </div>
         </li>
         {% endfor %}
       </ul>
       {% else %}
-      <p class="px-5 py-4 text-sm text-slate-400">No budget items.</p>
+      <p class="px-5 py-4 text-sm muted-ink">No budget items.</p>
       {% endif %}
 
       {% else %}
-      <p class="px-5 py-4 text-sm text-slate-400">No active budget for today.</p>
+      <p class="px-5 py-4 text-sm muted-ink">No active budget for today.</p>
       {% endif %}
-    </div>
+    {% endcall %}
 
-  </div>{# end left column #}
+  </div>
 
-  {# Right column – transactions + recurring (2 / 5) #}
   <div class="lg:col-span-2 space-y-6">
 
-    {# Recent Transactions #}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-100">
-        <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recent Transactions</h2>
+    {% call ui.note("peach", "overflow-hidden", "right") %}
+      <div class="note-header">
+        <h2 class="section-label">Recent Transactions</h2>
       </div>
       {% if recent_transactions %}
-      <ul class="divide-y divide-slate-100">
+      <ul>
         {% for txn in recent_transactions %}
-        <li class="px-5 py-3 flex items-start justify-between gap-3">
+        <li class="note-row flex items-start justify-between gap-3">
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-slate-800 truncate">
+            <p class="text-sm font-semibold truncate">
               {{ txn.description or txn.category_name or txn.account_name }}
             </p>
-            <p class="text-xs text-slate-400 mt-0.5">
-              {{ txn.posted_at | date_fmt }} · {{ txn.account_name }}{% if txn.category_name %} · {{ txn.category_name }}{% endif %}
+            <p class="text-xs muted-ink mt-0.5">
+              {{ txn.posted_at | date_fmt }} &middot; {{ txn.account_name }}{% if txn.category_name %} &middot; {{ txn.category_name }}{% endif %}
             </p>
           </div>
           <div class="text-right flex-shrink-0">
-            <p class="text-sm font-semibold
-              {{ 'text-emerald-600' if txn.kind == 'income' else
-                 'text-rose-600'   if txn.kind == 'expense' else
-                 'text-slate-700' }}">
+            <p class="amount text-base
+              {{ 'ink-positive' if txn.kind == 'income' else
+                 'ink-negative' if txn.kind == 'expense' else
+                 'ink-blue' }}">
               {{ txn.amount | currency }}
             </p>
-            <span class="inline-block text-xs px-1.5 py-0.5 rounded mt-0.5 {{ txn.kind | kind_badge }}">
-              {{ txn.kind }}
-            </span>
+            {{ ui.stamp(txn.kind, txn.kind, "mt-0.5") }}
           </div>
         </li>
         {% endfor %}
       </ul>
       {% else %}
-      <p class="px-5 py-4 text-sm text-slate-400">No transactions yet.</p>
+      <p class="px-5 py-4 text-sm muted-ink">No transactions yet.</p>
       {% endif %}
-    </div>
+    {% endcall %}
 
-    {# Upcoming Recurring #}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-100">
-        <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming (30 days)</h2>
+    {% call ui.note("lilac", "overflow-hidden", "left") %}
+      <div class="note-header">
+        <h2 class="section-label">Upcoming (30 days)</h2>
       </div>
       {% if upcoming_recurring %}
-      <ul class="divide-y divide-slate-100">
+      <ul>
         {% for rec in upcoming_recurring %}
-        <li class="px-5 py-3 flex items-center justify-between gap-3">
+        <li class="note-row flex items-center justify-between gap-3">
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-slate-800 truncate">{{ rec.description or rec.account_name }}</p>
-            <p class="text-xs text-slate-400 mt-0.5">
-              {{ rec.next_run_date | date_fmt }} · {{ rec.cadence }}
+            <p class="text-sm font-semibold truncate">{{ rec.description or rec.account_name }}</p>
+            <p class="text-xs muted-ink mt-0.5">
+              {{ rec.next_run_date | date_fmt }} &middot; {{ rec.cadence }}
             </p>
           </div>
           <div class="text-right flex-shrink-0">
-            <p class="text-sm font-semibold text-rose-600">{{ rec.amount | currency }}</p>
-            <span class="inline-block text-xs px-1.5 py-0.5 rounded mt-0.5 {{ rec.kind | kind_badge }}">
-              {{ rec.kind }}
-            </span>
+            <p class="amount text-base ink-negative">{{ rec.amount | currency }}</p>
+            {{ ui.stamp(rec.kind, rec.kind, "mt-0.5") }}
           </div>
         </li>
         {% endfor %}
       </ul>
       {% else %}
-      <p class="px-5 py-4 text-sm text-slate-400">Nothing due in the next 30 days.</p>
+      <p class="px-5 py-4 text-sm muted-ink italic">Nothing due in the next 30 days.</p>
       {% endif %}
-    </div>
+    {% endcall %}
 
-  </div>{# end right column #}
+  </div>
 
-</div>{# end main grid #}
+</div>
 
 {% endblock %}

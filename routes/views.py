@@ -31,7 +31,7 @@ templates = Jinja2Templates(directory=_TEMPLATES_DIR)
 
 
 def _currency(value: object) -> str:
-    return f"${float(value):,.2f}"  # type: ignore[arg-type]
+    return f"KES {float(value):,.2f}"  # type: ignore[arg-type]
 
 
 def _date_fmt(value: object) -> str:
@@ -44,11 +44,11 @@ def _month_name(value: object) -> str:
 
 def _kind_badge(kind: str) -> str:
     return {
-        "income": "bg-emerald-100 text-emerald-700",
-        "expense": "bg-rose-100 text-rose-700",
-        "refund": "bg-blue-100 text-blue-700",
-        "transfer": "bg-purple-100 text-purple-700",
-    }.get(kind, "bg-slate-100 text-slate-600")
+        "income": "stamp stamp-green",
+        "expense": "stamp stamp-red",
+        "refund": "stamp stamp-blue",
+        "transfer": "stamp stamp-blue",
+    }.get(kind, "stamp stamp-blue")
 
 
 templates.env.filters["currency"] = _currency

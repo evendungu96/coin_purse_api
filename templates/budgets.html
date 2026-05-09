@@ -1,30 +1,28 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 
-{% block title %}Budgets — Coin Purse{% endblock %}
-{% block nav_budgets %}font-semibold !text-white{% endblock %}
+{% block title %}Budgets - Coin Purse{% endblock %}
+{% block nav_budgets %}nav-active{% endblock %}
 
 {% block content %}
 
-{# ── Toast ─────────────────────────────────────────────────────── #}
-<div id="toast" class="hidden fixed bottom-5 right-5 z-50 max-w-sm rounded-xl shadow-lg px-5 py-3 text-sm font-medium"></div>
+<div id="toast" class="hidden fixed bottom-5 right-5 z-50 max-w-sm ledger-card px-5 py-3 text-sm font-semibold"></div>
 
-{# ── Page heading ─────────────────────────────────────────────── #}
 <div class="mb-6">
-  <h1 class="text-2xl font-bold text-slate-900">Budgets</h1>
-  <p class="text-slate-500 text-sm mt-0.5">Create and manage your budget periods and line items.</p>
+  <h1 class="serif text-3xl font-bold">Budgets</h1>
+  <p class="muted-ink text-sm mt-0.5">Create and manage your budget periods and line items.</p>
 </div>
 
-{# ── Create Budget ────────────────────────────────────────────── #}
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-  <div class="px-5 py-4 border-b border-slate-100">
-    <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">New Budget</h2>
+{% call ui.note("blue", "overflow-hidden mb-8", "soft-left") %}
+  <div class="note-header">
+    <h2 class="section-label">New Budget</h2>
   </div>
-  <div class="px-5 py-4 bg-slate-50">
+  <div class="px-5 py-4">
     <form id="budget-form" class="flex flex-wrap gap-4 items-end" onsubmit="createBudget(event)">
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-slate-500">Clone items from</label>
-        <select id="create-clone-from" name="clone_from" class="input-field min-w-[200px]">
-          <option value="">— blank budget —</option>
+        <label class="section-label">Clone items from</label>
+        <select id="create-clone-from" name="clone_from" class="ledger-input min-w-[200px]">
+          <option value="">- blank budget -</option>
           {% for bd in budgets %}
           {% set b = bd.budget %}
           <option value="{{ b.id }}"
@@ -32,226 +30,201 @@
             data-clone-end="{{ bd.clone_end }}"
             {% if b.is_template %}data-is-template="true"{% endif %}
             {% if b.id | string == template_budget_id %}selected{% endif %}>
-            {{ b.name }}{% if b.is_template %} ⭐{% endif %}
+            {{ b.name }}{% if b.is_template %} template{% endif %}
           </option>
           {% endfor %}
         </select>
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-slate-500">Start Date</label>
+        <label class="section-label">Start Date</label>
         <input id="create-period-start" name="period_start" type="date" required
-               class="input-field" value="{{ default_start }}"
+               class="ledger-input" value="{{ default_start }}"
                oninput="autoFillEndDate()" />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-slate-500">End Date</label>
-        <input id="create-period-end" name="period_end" type="date" required class="input-field" value="{{ default_end }}" />
+        <label class="section-label">End Date</label>
+        <input id="create-period-end" name="period_end" type="date" required class="ledger-input" value="{{ default_end }}" />
       </div>
       <div class="flex flex-col gap-1 min-w-[180px]">
-        <label class="text-xs text-slate-500">Name <span class="text-slate-400">(optional — defaults to month &amp; year)</span></label>
-        <input id="create-name" name="name" type="text" class="input-field" placeholder="e.g. April 2026 (auto)" />
+        <label class="section-label">Name <span class="normal-case tracking-normal muted-ink">(optional)</span></label>
+        <input id="create-name" name="name" type="text" class="ledger-input" placeholder="e.g. April 2026 (auto)" />
       </div>
-      <button type="submit" class="btn-primary">Create Budget</button>
+      <button type="submit" class="ledger-btn">Create Budget</button>
     </form>
   </div>
-</div>
+{% endcall %}
 
-{# ── Budget Trend ─────────────────────────────────────────────── #}
 {% if trend_data | length > 1 %}
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-  <div class="px-5 py-4 border-b border-slate-100">
-    <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Budget Trends</h2>
+{% call ui.note("peach", "overflow-hidden mb-8", "soft-right") %}
+  <div class="note-header">
+    <h2 class="section-label">Budget Trends</h2>
   </div>
   <div class="px-5 py-4">
-    {# Stat pills #}
-    <div class="flex gap-3 flex-wrap mb-5">
-      <div class="bg-emerald-50 rounded-lg px-4 py-2 text-center">
-        <p class="text-xs text-emerald-600 font-medium">Highest</p>
-        <p class="text-sm font-bold text-emerald-700">{{ trend_stats.max | currency }}</p>
-      </div>
-      <div class="bg-rose-50 rounded-lg px-4 py-2 text-center">
-        <p class="text-xs text-rose-600 font-medium">Lowest</p>
-        <p class="text-sm font-bold text-rose-700">{{ trend_stats.min | currency }}</p>
-      </div>
-      <div class="bg-slate-50 rounded-lg px-4 py-2 text-center">
-        <p class="text-xs text-slate-500 font-medium">Average</p>
-        <p class="text-sm font-bold text-slate-700">{{ trend_stats.avg | currency }}</p>
-      </div>
-      <div class="bg-slate-50 rounded-lg px-4 py-2 text-center">
-        <p class="text-xs text-slate-500 font-medium">Periods</p>
-        <p class="text-sm font-bold text-slate-700">{{ trend_stats.count }}</p>
-      </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+      {% call ui.note("green", "note-no-tape p-3 text-center", "soft-left") %}
+        <p class="section-label">Highest</p>
+        <p class="amount text-base ink-positive">{{ trend_stats.max | currency }}</p>
+      {% endcall %}
+      {% call ui.note("pink", "note-no-tape p-3 text-center", "soft-right") %}
+        <p class="section-label">Lowest</p>
+        <p class="amount text-base ink-negative">{{ trend_stats.min | currency }}</p>
+      {% endcall %}
+      {% call ui.note("yellow", "note-no-tape p-3 text-center", "soft-left") %}
+        <p class="section-label">Average</p>
+        <p class="amount text-base">{{ trend_stats.avg | currency }}</p>
+      {% endcall %}
+      {% call ui.note("lilac", "note-no-tape p-3 text-center", "soft-right") %}
+        <p class="section-label">Periods</p>
+        <p class="amount text-base">{{ trend_stats.count }}</p>
+      {% endcall %}
     </div>
-    {# Line chart #}
     <div style="position: relative; height: 280px;">
       <canvas id="trend-chart"></canvas>
     </div>
   </div>
-</div>
+{% endcall %}
 {% endif %}
 
-{# ── Budget list (grouped by year, collapsible cards) ─────────── #}
 {% if budgets %}
 
-{# Group budgets by year server-side using namespace trick #}
 {% set ns = namespace(current_year=None) %}
+{% set note_colors = ["yellow", "blue", "green", "peach", "pink", "lilac"] %}
+{% set note_rotates = ["soft-right", "soft-left", "right", "left", "soft-right", "soft-left"] %}
 <div id="budget-list">
   {% for bd in budgets %}
   {% set b = bd.budget %}
   {% set yr = b.period_start.year %}
 
-  {# Year divider #}
   {% if yr != ns.current_year %}
-  {% if not loop.first %}</div>{% endif %}
+  {% if not loop.first %}</div></section>{% endif %}
   {% set ns.current_year = yr %}
-  <div class="mb-2 mt-{{ '0' if loop.first else '6' }}">
-    <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-widest px-1 mb-2">{{ yr }}</h2>
-    <div class="space-y-2">
+  <section class="mb-8">
+    <h2 class="section-label px-1 mb-3">{{ yr }}</h2>
+    <div class="space-y-3">
   {% endif %}
 
-  {# Accordion card #}
-  <div id="budget-{{ b.id }}" class="bg-white rounded-xl shadow-sm border overflow-hidden {% if bd.is_current %}border-emerald-400{% else %}border-slate-200{% endif %}">
+  {% set note_color = note_colors[loop.index0 % (note_colors | length)] %}
+  {% set note_rotate = note_rotates[loop.index0 % (note_rotates | length)] %}
+  <div id="budget-{{ b.id }}">
+  {% call ui.note(note_color, "overflow-hidden " ~ ("current-budget" if bd.is_current else ""), note_rotate) %}
 
-    {# Clickable header row — always visible #}
-    <div class="px-5 py-3 flex items-center justify-between gap-3 cursor-pointer select-none
-                hover:bg-slate-50 transition-colors"
+    <div class="px-5 py-3 flex items-center justify-between gap-3 cursor-pointer select-none"
          onclick="toggleCard('{{ b.id }}')">
       <div class="flex items-center gap-3 min-w-0">
-        {# Chevron #}
-        <svg id="chevron-{{ b.id }}" class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200"
+        <svg id="chevron-{{ b.id }}" class="w-4 h-4 muted-ink shrink-0 transition-transform duration-200"
              fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
         </svg>
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-sm font-semibold text-slate-800 truncate">{{ b.name }}</span>
+            <span class="serif text-lg font-semibold truncate">{{ b.name }}</span>
             {% if bd.is_current %}
-            <span class="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded-full shrink-0">● Current</span>
+            {{ ui.stamp("current", "Current") }}
             {% endif %}
             {% if b.is_template %}
-            <span class="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full shrink-0">⭐ Template</span>
+            {{ ui.stamp("transfer", "Template") }}
             {% endif %}
             {% if bd.source_name %}
-            <span class="text-xs text-indigo-400 shrink-0">↳ {{ bd.source_name }}</span>
+            <span class="text-xs ink-blue shrink-0">from {{ bd.source_name }}</span>
             {% endif %}
           </div>
-          <p class="text-xs text-slate-400 mt-0.5">
-            {{ b.period_start.strftime("%b %d") }} – {{ b.period_end.strftime("%b %d, %Y") }}
-            · {{ bd['items'] | length }} item{{ 's' if bd['items'] | length != 1 else '' }}
+          <p class="text-xs muted-ink mt-0.5">
+            {{ b.period_start.strftime("%b %d") }} - {{ b.period_end.strftime("%b %d, %Y") }}
+            &middot; {{ bd['items'] | length }} item{{ 's' if bd['items'] | length != 1 else '' }}
           </p>
         </div>
       </div>
-      {# Action buttons — stopPropagation so they don't toggle the accordion #}
       <div class="flex items-center gap-2 shrink-0" onclick="event.stopPropagation()">
         {% if b.is_template %}
-        <button
-          onclick="unsetTemplate('{{ b.id }}')"
-          class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium px-2.5 py-1 rounded-lg transition-colors">
-          ⭐
+        <button onclick="unsetTemplate('{{ b.id }}')" class="ledger-btn px-2 py-1" title="Clear template">
+          Template
         </button>
         {% else %}
-        <button
-          onclick="setTemplate('{{ b.id }}')"
-          title="Set as template"
-          class="text-xs text-slate-300 hover:text-amber-500 font-medium px-1 py-1 rounded-lg transition-colors">
-          ☆
+        <button onclick="setTemplate('{{ b.id }}')" title="Set as template" class="text-xs muted-ink hover-ink-blue font-bold px-2 py-1">
+          Template
         </button>
         {% endif %}
-        <button
-          onclick="deleteBudget('{{ b.id }}')"
-          class="text-xs text-rose-400 hover:text-rose-600 font-medium px-1 py-1 rounded-lg transition-colors">
-          ✕
+        <button onclick="deleteBudget('{{ b.id }}')" class="link-danger px-2 py-1">
+          Remove
         </button>
       </div>
     </div>
 
-    {# Collapsible body — hidden by default #}
-    <div id="body-{{ b.id }}" class="hidden border-t border-slate-100">
+    <div id="body-{{ b.id }}" class="hidden border-t" style="border-color: rgba(0,0,0,0.08);">
 
-      {# Budget items #}
-      <ul id="items-{{ b.id }}" class="divide-y divide-slate-100">
+      <ul id="items-{{ b.id }}" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         {% for item in bd['items'] %}
-        <li id="bitem-{{ item.id }}" class="px-5 py-3 flex items-center justify-between gap-4">
-          <p class="text-sm text-slate-700">{{ item.category_name }}</p>
-          <div class="flex items-center gap-2">
-            <span id="amount-{{ item.id }}" class="text-sm font-semibold text-slate-800">{{ item.limit_amount | currency }}</span>
+        <li id="bitem-{{ item.id }}" class="budget-line">
+          <p class="section-label mb-2">{{ item.category_name }}</p>
+          <div class="flex items-center justify-between gap-2">
+            <span id="amount-{{ item.id }}" class="amount text-base">{{ item.limit_amount | currency }}</span>
             <input id="amount-input-{{ item.id }}" type="number" step="0.01" min="0"
-                   class="hidden input-field w-28 text-sm py-0.5"
+                   class="hidden ledger-input w-28 text-sm py-1"
                    value="{{ item.limit_amount }}"
                    onkeydown="handleAmountKey(event, '{{ b.id }}', '{{ item.id }}')" />
-            <button id="edit-btn-{{ item.id }}"
-                    onclick="startEditItem('{{ item.id }}')"
-                    class="text-slate-300 hover:text-indigo-500 transition-colors"
-                    title="Edit amount">
-              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-              </svg>
-            </button>
-            <button id="cancel-btn-{{ item.id }}"
-                    onclick="cancelEditItem('{{ item.id }}')"
-                    class="hidden text-xs text-slate-400 hover:text-rose-500 transition-colors"
-                    title="Cancel edit">✕</button>
-            <button
-              onclick="deleteBudgetItem('{{ b.id }}', '{{ item.id }}')"
-              class="text-xs text-rose-500 hover:text-rose-700 font-medium ml-2">
-              Remove
-            </button>
+            <div class="flex items-center gap-2">
+              <button id="edit-btn-{{ item.id }}"
+                      onclick="startEditItem('{{ item.id }}')"
+                      class="muted-ink hover-ink-blue transition-colors"
+                      title="Edit amount">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                </svg>
+              </button>
+              <button id="cancel-btn-{{ item.id }}"
+                      onclick="cancelEditItem('{{ item.id }}')"
+                      class="hidden link-danger"
+                      title="Cancel edit">x</button>
+              <button onclick="deleteBudgetItem('{{ b.id }}', '{{ item.id }}')" class="link-danger">
+                Remove
+              </button>
+            </div>
           </div>
         </li>
         {% endfor %}
         {% if not bd['items'] %}
-        <li id="items-empty-{{ b.id }}" class="px-5 py-3 text-sm text-slate-400">No items yet.</li>
+        <li id="items-empty-{{ b.id }}" class="px-5 py-3 text-sm muted-ink">No items yet.</li>
         {% endif %}
       </ul>
 
-      {# Add item form #}
-      <div class="px-5 py-4 border-t border-slate-100 bg-slate-50">
-        <p class="text-xs font-semibold text-slate-500 mb-3">Add Budget Item</p>
+      <div class="px-5 py-4 border-t" style="border-color: rgba(0,0,0,0.08); background: rgba(0,0,0,0.025);">
+        <p class="section-label mb-3">Add Budget Item</p>
         <form class="flex flex-wrap gap-3 items-end"
               onsubmit="createBudgetItem(event, '{{ b.id }}')">
           <div class="flex flex-col gap-1">
-            <label class="text-xs text-slate-500">Category</label>
-            <select name="category_id" class="input-field" required>
-              <option value="">— pick category —</option>
+            <label class="section-label">Category</label>
+            <select name="category_id" class="ledger-input" required>
+              <option value="">- pick category -</option>
               {% for cat in categories %}
               <option value="{{ cat.id }}">{{ cat.name }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs text-slate-500">Monthly Limit</label>
+            <label class="section-label">Monthly Limit</label>
             <input name="limit_amount" type="number" step="0.01" min="0"
-                   class="input-field w-32" placeholder="0.00" required />
+                   class="ledger-input w-32" placeholder="0.00" required />
           </div>
-          <button type="submit" class="btn-primary">Add Item</button>
+          <button type="submit" class="ledger-btn">Add Item</button>
         </form>
       </div>
 
-    </div>{# end collapsible body #}
+    </div>
+  {% endcall %}
   </div>
 
-  {% if loop.last %}</div></div>{% endif %}
+  {% if loop.last %}</div></section>{% endif %}
   {% endfor %}
 </div>
 
 {% else %}
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 px-5 py-10 text-center text-sm text-slate-400">
+{% call ui.note("yellow", "px-5 py-10 text-center text-sm muted-ink", "soft-right") %}
   No budgets yet. Create your first budget above.
-</div>
+{% endcall %}
 {% endif %}
-{# ── Chart.js ──────────────────────────────────────────────── #}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-{# ── Styles ───────────────────────────────────────────────────── #}
-<style>
-  .input-field {
-    @apply border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white;
-  }
-  .btn-primary {
-    @apply bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors;
-  }
-</style>
 
-{# ── JS ───────────────────────────────────────────────────────── #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
 <script>
 const USER_ID = "{{ user_id }}";
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -263,8 +236,7 @@ const TREND_SERIES = {{ trend_series | tojson }};
 function toast(msg, ok = true) {
   const el = document.getElementById("toast");
   el.textContent = msg;
-  el.className = `fixed bottom-5 right-5 z-50 max-w-sm rounded-xl shadow-lg px-5 py-3 text-sm font-medium
-    ${ok ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"}`;
+  el.className = `fixed bottom-5 right-5 z-50 max-w-sm ledger-card px-5 py-3 text-sm font-semibold ${ok ? "ink-positive" : "ink-negative"}`;
   setTimeout(() => el.classList.add("hidden"), 3000);
 }
 
@@ -297,7 +269,6 @@ function autoFillEndDate() {
   const startVal = document.getElementById("create-period-start").value;
   if (!startVal) return;
   const d = new Date(startVal + "T00:00:00");
-  // Last day of the same month
   const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
   const yyyy = lastDay.getFullYear();
   const mm = String(lastDay.getMonth() + 1).padStart(2, "0");
@@ -323,14 +294,12 @@ async function createBudget(e) {
   const periodEnd = fd.get("period_end");
 
   if (cloneFrom) {
-    // Clone the selected source into the chosen period
     const body = { period_start: periodStart, period_end: periodEnd };
     if (name) body.name = name;
     const res = await apiFetch("POST", `/users/${USER_ID}/budgets/${cloneFrom}/clone`, body);
     if (res.ok) { toast("Budget cloned"); location.reload(); }
     else { const d = await res.json(); toast(d.detail || "Error", false); }
   } else {
-    // Create a blank budget
     const body = { period_start: periodStart, period_end: periodEnd };
     if (name) body.name = name;
     const res = await apiFetch("POST", `/users/${USER_ID}/budgets`, body);
@@ -411,7 +380,7 @@ async function saveItemAmount(budgetId, itemId) {
     const data = await res.json();
     const amt = parseFloat(data.limit_amount);
     document.getElementById(`amount-${itemId}`).textContent =
-      "$" + amt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      "KES " + amt.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     cancelEditItem(itemId);
     toast("Amount updated");
   } else {
@@ -430,18 +399,20 @@ async function deleteBudgetItem(budgetId, itemId) {
 function initTrendChart() {
   const canvas = document.getElementById("trend-chart");
   if (!canvas) return;
+  Chart.defaults.font.family = "Karla";
+  Chart.defaults.font.size = 13;
   const shortLabels = TREND_LABELS.map(l => {
     const [mon, yr] = l.split(" ");
     return mon.slice(0, 3) + " '" + yr.slice(2);
   });
   const PALETTE = [
-    "#334155","#6366f1","#f59e0b","#10b981","#ef4444","#8b5cf6","#0ea5e9","#f97316",
+    "#1E3A5F","#2B5A1E","#8B1A2B","#B8860B","#5C3D2E","#8A847D","#A8C4E0","#C4B4DC",
   ];
   const datasets = TREND_SERIES.map((s, i) => ({
     label: s.name,
     data: s.data,
     borderColor: PALETTE[i % PALETTE.length],
-    backgroundColor: s.name === "Total" ? "rgba(51,65,85,0.06)" : "transparent",
+    backgroundColor: s.name === "Total" ? "rgba(30,58,95,0.08)" : "transparent",
     borderWidth: s.name === "Total" ? 2.5 : 1.5,
     fill: s.name === "Total",
     tension: 0.3,
@@ -459,27 +430,29 @@ function initTrendChart() {
       plugins: {
         legend: {
           position: "bottom",
-          labels: { usePointStyle: true, boxWidth: 8, padding: 14, font: { size: 11 } },
+          labels: { usePointStyle: true, boxWidth: 8, padding: 14, font: { size: 13, family: "Karla" } },
         },
         tooltip: {
+          titleFont: { size: 13, family: "Karla", weight: "700" },
+          bodyFont: { size: 13, family: "Courier Prime", weight: "700" },
           callbacks: {
             label(ctx) {
               const v = ctx.parsed.y;
               if (v == null) return null;
-              return " " + ctx.dataset.label + ": $" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              return " " + ctx.dataset.label + ": KES " + v.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             },
           },
         },
       },
       scales: {
         x: {
-          ticks: { font: { size: 10 }, maxRotation: 45 },
+          ticks: { font: { size: 12, family: "Karla" }, maxRotation: 45 },
           grid: { display: false },
         },
         y: {
           ticks: {
-            font: { size: 10 },
-            callback(v) { return "$" + (v >= 1000 ? (v / 1000).toFixed(0) + "k" : v); },
+            font: { size: 12, family: "Courier Prime", weight: "700" },
+            callback(v) { return "KES " + (v >= 1000 ? (v / 1000).toFixed(0) + "k" : v); },
           },
         },
       },

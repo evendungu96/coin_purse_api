@@ -1,3 +1,4 @@
+{% import "macros.html" as ui %}
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
@@ -5,52 +6,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Coin Purse{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/ledger-theme.css" />
 </head>
-<body class="bg-slate-100 min-h-full text-slate-800 antialiased">
+<body class="ledger-app min-h-full antialiased">
 
-  <header class="bg-indigo-700 text-white shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-      <span class="font-bold text-xl tracking-tight select-none">Coin Purse</span>
+  <header class="paper-header">
+    {{ ui.tape("tape-header-left") }}
+    {{ ui.tape("tape-header-center") }}
+    {{ ui.tape("tape-header-right") }}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-6 relative">
+      <a href="{% if user_id is defined %}/ui/dashboard/{{ user_id }}{% else %}#{% endif %}"
+         class="select-none flex items-baseline gap-2">
+        <span class="serif text-2xl font-bold">Coin Purse</span>
+        <span class="section-label">Ledger</span>
+      </a>
       <div class="flex items-center gap-6">
         {% if user_id is defined %}
-        <nav class="flex gap-4 text-sm">
+        <nav class="flex flex-wrap gap-1 text-sm">
           <a href="/ui/dashboard/{{ user_id }}"
-             class="text-indigo-200 hover:text-white transition-colors {% block nav_dashboard %}{% endblock %}">
+             class="ledger-nav-link {% block nav_dashboard %}{% endblock %}">
             Dashboard
           </a>
           <a href="/ui/transactions/{{ user_id }}"
-             class="text-indigo-200 hover:text-white transition-colors {% block nav_transactions %}{% endblock %}">
+             class="ledger-nav-link {% block nav_transactions %}{% endblock %}">
             Transactions
           </a>
           <a href="/ui/budgets/{{ user_id }}"
-             class="text-indigo-200 hover:text-white transition-colors {% block nav_budgets %}{% endblock %}">
+             class="ledger-nav-link {% block nav_budgets %}{% endblock %}">
             Budgets
+          </a>
+          <a href="/ui/config/{{ user_id }}"
+             class="ledger-nav-link {% block nav_config %}{% endblock %}">
+            Config
           </a>
         </nav>
         {% endif %}
-        <div class="flex items-center gap-4 text-sm">
+        <div class="flex items-center gap-4 text-sm muted-ink">
           {% block header_right %}{% endblock %}
           {% if session_user_name is defined and session_user_name %}
           <div class="relative" id="user-menu-container">
             <button onclick="toggleUserMenu()" id="user-menu-btn"
                     title="{{ session_user_name }}"
-                    class="w-9 h-9 rounded-full bg-indigo-500 hover:bg-indigo-400 flex items-center justify-center text-white font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-700 select-none">
+                    class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors focus:outline-none focus:ring-2 select-none"
+                    style="background: var(--ink-black); color: var(--paper); --tw-ring-color: var(--ink-blue);">
               {{ session_user_name[0] | upper }}
             </button>
             <div id="user-menu"
-                 class="hidden absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 text-slate-700">
-              <div class="px-4 py-2 text-sm font-medium text-slate-900 border-b border-slate-100 truncate">
+                 class="hidden absolute right-0 mt-2 w-52 ledger-card py-1 z-50">
+              <div class="px-4 py-2 text-sm font-semibold border-b truncate" style="border-color: var(--rule-faint);">
                 {{ session_user_name }}
               </div>
               {% if user_id is defined %}
               <a href="/ui/config/{{ user_id }}"
-                 class="block px-4 py-2 text-sm hover:bg-slate-50 transition-colors">
+                 class="block px-4 py-2 text-sm hover:bg-[rgba(0,0,0,0.03)] transition-colors">
                 Personal settings
               </a>
               {% endif %}
               <form action="/auth/logout" method="post">
                 <button type="submit"
-                        class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 transition-colors">
+                        class="w-full text-left px-4 py-2 text-sm link-danger hover:bg-[rgba(139,26,43,0.06)] transition-colors">
                   Sign out
                 </button>
               </form>
@@ -74,7 +88,7 @@
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+  <main class="page-settle max-w-7xl mx-auto px-4 sm:px-6 py-6">
     {% block content %}{% endblock %}
   </main>
 

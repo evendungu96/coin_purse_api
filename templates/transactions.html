@@ -1,32 +1,28 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 
-{% block title %}Transactions — Coin Purse{% endblock %}
-{% block nav_transactions %}font-semibold !text-white{% endblock %}
+{% block title %}Transactions - Coin Purse{% endblock %}
+{% block nav_transactions %}nav-active{% endblock %}
 
 {% block content %}
 
-{# ── Page heading ──────────────────────────────────────────── #}
 <div class="mb-6">
-  <h1 class="text-2xl font-bold text-slate-900">Transactions</h1>
+  <h1 class="serif text-3xl font-bold">Transactions</h1>
 </div>
 
-{# ── Two-column layout ─────────────────────────────────────── #}
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-  {# Left — record form (2/5) #}
   <div class="lg:col-span-2">
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sticky top-6">
-      <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Record Transaction</h2>
+    {% call ui.note("blue", "p-5 sticky top-6", "soft-left") %}
+      <h2 class="section-label mb-4">Record Transaction</h2>
 
       <form id="txn-form" class="space-y-4">
 
-        {# Kind #}
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Type</label>
-          <div class="grid grid-cols-4 gap-1 text-xs font-medium">
+          <label class="block section-label mb-2">Type</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {% for k in kinds %}
-            <label class="kind-btn cursor-pointer rounded-lg border-2 border-slate-200 text-center py-2 transition-all
-                          {% if k.name == 'income' %}hover:border-emerald-400 hover:bg-emerald-50{% elif k.name == 'expense' %}hover:border-rose-400 hover:bg-rose-50{% elif k.name == 'transfer' %}hover:border-purple-400 hover:bg-purple-50{% else %}hover:border-blue-400 hover:bg-blue-50{% endif %}">
+            <label class="kind-btn kind-{{ k.name }}">
               <input type="radio" name="kind" value="{{ k.name }}" class="sr-only" {% if loop.first %}checked{% endif %}>
               {{ k.name | capitalize }}
             </label>
@@ -34,155 +30,153 @@
           </div>
         </div>
 
-        {# Amount + Date #}
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Amount</label>
+            <label class="block section-label mb-1">Amount</label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 muted-ink text-xs font-bold">KES</span>
               <input id="amount" type="number" min="0" step="0.01" placeholder="0.00"
-                     class="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                     class="ledger-input w-full pl-12 pr-3"
                      required />
             </div>
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Date</label>
+            <label class="block section-label mb-1">Date</label>
             <input id="posted_at" type="date"
-                   class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                   class="ledger-input w-full"
                    required />
           </div>
         </div>
 
-        {# Account #}
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Account</label>
-          <select id="account_id"
-                  class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  required>
-            <option value="">— select account —</option>
+          <label class="block section-label mb-1">Account</label>
+          <select id="account_id" class="ledger-input w-full" required>
+            <option value="">- select account -</option>
             {% for a in accounts %}
             <option value="{{ a.id }}">{{ a.name }}</option>
             {% endfor %}
           </select>
         </div>
 
-        {# To Account — transfers only #}
         <div id="to-account-row" class="hidden">
-          <label class="block text-xs font-medium text-slate-600 mb-1">To Account</label>
-          <select id="to_account_id"
-                  class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            <option value="">— select account —</option>
+          <label class="block section-label mb-1">To Account</label>
+          <select id="to_account_id" class="ledger-input w-full">
+            <option value="">- select account -</option>
             {% for a in accounts %}
             <option value="{{ a.id }}">{{ a.name }}</option>
             {% endfor %}
           </select>
         </div>
 
-        {# Category — non-transfer only #}
         <div id="category-row">
-          <label class="block text-xs font-medium text-slate-600 mb-1">Category <span class="text-slate-400">(optional)</span></label>
-          <select id="category_id"
-                  class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            <option value="">— none —</option>
+          <label class="block section-label mb-1">Category <span class="normal-case tracking-normal muted-ink">(optional)</span></label>
+          <select id="category_id" class="ledger-input w-full">
+            <option value="">- none -</option>
             {% for c in categories %}
             <option value="{{ c.id }}">{{ c.name }}</option>
             {% endfor %}
           </select>
         </div>
 
-        {# Description #}
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Description <span class="text-slate-400">(optional)</span></label>
+          <label class="block section-label mb-1">Description <span class="normal-case tracking-normal muted-ink">(optional)</span></label>
           <input id="description" type="text" placeholder="e.g. Groceries"
-                 class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                 class="ledger-input w-full" />
         </div>
 
-        {# Error / success banners #}
-        <div id="form-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"></div>
-        <div id="form-success" class="hidden text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"></div>
+        <div id="form-error" class="hidden text-xs ink-negative border px-3 py-2" style="background: rgba(139,26,43,0.07); border-color: rgba(139,26,43,0.25);"></div>
+        <div id="form-success" class="hidden text-xs ink-positive border px-3 py-2" style="background: rgba(43,90,30,0.07); border-color: rgba(43,90,30,0.25);"></div>
 
-        <button type="submit"
-                class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors">
+        <button type="submit" class="ledger-btn w-full">
           Save Transaction
         </button>
       </form>
-    </div>
+    {% endcall %}
   </div>
 
-  {# Right — stats + log (3/5) #}
   <div class="lg:col-span-3 space-y-6">
 
-    {# Stats cards #}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {% set kind_colors = {"income": "emerald", "expense": "rose", "transfer": "purple", "refund": "blue"} %}
+      {% set kind_notes = {"income": "green", "expense": "pink", "transfer": "blue", "refund": "lilac"} %}
       {% for k in ["income", "expense", "transfer", "refund"] %}
-      {% set color = kind_colors[k] %}
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ k }}</p>
-        <p id="stat-count-{{ k }}" class="mt-1 text-2xl font-bold text-{{ color }}-600">{{ kind_counts.get(k, 0) }}</p>
-        <p class="text-xs text-slate-400 mt-0.5">total</p>
-      </div>
+      {% call ui.note(kind_notes[k], "p-4", "soft-right" if loop.index is even else "soft-left") %}
+        <p class="section-label">{{ k }}</p>
+        <p id="stat-count-{{ k }}" class="amount mt-1 text-2xl ink-{{ 'green' if k == 'income' else 'red' if k == 'expense' else 'blue' }}">
+          {{ kind_counts.get(k, 0) }}
+        </p>
+        <p class="text-xs muted-ink mt-0.5">total</p>
+      {% endcall %}
       {% endfor %}
     </div>
 
-    {# Daily activity chart (last 7 days) #}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-      <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Daily Activity (last 7 days)</h2>
+    {% call ui.note("green", "p-5", "soft-left") %}
+      <h2 class="section-label mb-4">Daily Activity (last 7 days)</h2>
       <div id="daily-chart" class="h-36 flex items-end gap-2">
         {% set max_val = daily_data | max if daily_data | max > 0 else 1 %}
         {% for i in range(7) %}
         {% set h = ((daily_data[i] / max_val) * 100) | int %}
         <div class="flex-1 flex flex-col items-center gap-1">
-          <span class="text-xs text-slate-500">{{ daily_data[i] }}</span>
-          <div class="w-full bg-indigo-500 rounded-t" style="height: {{ [h, 4] | max }}px; max-height: 96px;"></div>
-          <span class="text-xs text-slate-400 truncate w-full text-center">{{ daily_labels[i] }}</span>
+          <span class="text-xs muted-ink">{{ daily_data[i] }}</span>
+          <div class="daily-bar" style="height: {{ [h, 4] | max }}px; max-height: 96px;"></div>
+          <span class="text-xs muted-ink truncate w-full text-center">{{ daily_labels[i] }}</span>
         </div>
         {% endfor %}
       </div>
-    </div>
+    {% endcall %}
 
-    {# Transaction log #}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-        <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recent Transactions</h2>
-        <span class="text-xs text-slate-400">last 50</span>
+    <div class="ledger-card">
+      {{ ui.tape("tape-table-left") }}
+      {{ ui.tape("tape-table-right") }}
+      <div class="ledger-card-head flex items-center justify-between">
+        <h2 class="section-label">Recent Transactions</h2>
+        <span class="text-xs muted-ink">last 50</span>
       </div>
 
-      <div id="txn-list">
-        {% if transactions %}
-        <ul class="divide-y divide-slate-100">
-          {% for t in transactions %}
-          <li class="txn-row px-5 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors"
-              data-id="{{ t.id }}">
-            <div class="shrink-0 text-xs text-slate-400 w-16 text-right">
-              {{ t.posted_at | date_fmt }}
-            </div>
-            <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full {{ t.kind.name | kind_badge }}">
-              {{ t.kind.name }}
-            </span>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-slate-800 truncate">
-                {{ t.description or "—" }}
-              </p>
-              <p class="text-xs text-slate-400 truncate">
-                {{ t.account.name }}
-                {% if t.to_account_id %} → {{ t.to_account.name }}{% endif %}
-                {% if t.category %} · {{ t.category.name }}{% endif %}
-              </p>
-            </div>
-            <div class="shrink-0 text-sm font-semibold
-                        {% if t.kind.name == 'income' %}text-emerald-600
-                        {% elif t.kind.name == 'expense' %}text-rose-600
-                        {% elif t.kind.name == 'transfer' %}text-purple-600
-                        {% else %}text-blue-600{% endif %}">
-              {{ t.amount | currency }}
-            </div>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p class="px-5 py-8 text-center text-slate-400 text-sm">No transactions yet. Add one using the form.</p>
-        {% endif %}
+      <div class="overflow-x-auto">
+        <div class="min-w-[680px]">
+          <div class="ledger-table-strip txn-grid px-5 py-2 items-center">
+            <div class="section-label text-right pr-2">Date</div>
+            <div class="section-label">Type</div>
+            <div class="section-label">Entry</div>
+            <div class="section-label text-right">Amount</div>
+          </div>
+
+          <div id="txn-list">
+            {% if transactions %}
+            <ul>
+              {% for t in transactions %}
+              <li class="txn-row ledger-row txn-grid px-5 py-3 items-center gap-4"
+                  data-id="{{ t.id }}">
+                <div class="text-xs muted-ink text-right">
+                  {{ t.posted_at | date_fmt }}
+                </div>
+                <div>
+                  {{ ui.stamp(t.kind.name, t.kind.name) }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold truncate">
+                    {{ t.description or "-" }}
+                  </p>
+                  <p class="text-xs muted-ink truncate">
+                    {{ t.account.name }}
+                    {% if t.to_account_id %} -> {{ t.to_account.name }}{% endif %}
+                    {% if t.category %} &middot; {{ t.category.name }}{% endif %}
+                  </p>
+                </div>
+                <div class="amount text-base text-right
+                            {% if t.kind.name == 'income' %}ink-positive
+                            {% elif t.kind.name == 'expense' %}ink-negative
+                            {% else %}ink-blue{% endif %}">
+                  {{ t.amount | currency }}
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="px-5 py-8 text-center muted-ink text-sm">No transactions yet. Add one using the form.</p>
+            {% endif %}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -192,25 +186,22 @@
 <script>
 const USER_ID = "{{ user_id }}";
 
-// ── Kind radio button highlight ───────────────────────────────
+function stampClass(kind) {
+  if (kind === "income") return "stamp-green";
+  if (kind === "expense") return "stamp-red";
+  return "stamp-blue";
+}
+
+function amountClass(kind) {
+  if (kind === "income") return "ink-positive";
+  if (kind === "expense") return "ink-negative";
+  return "ink-blue";
+}
+
 function updateKindButtons() {
   document.querySelectorAll(".kind-btn").forEach(btn => {
     const radio = btn.querySelector("input[type=radio]");
-    const kind = radio.value;
-    const activeClasses = {
-      income:   ["border-emerald-500", "bg-emerald-50", "text-emerald-700"],
-      expense:  ["border-rose-500",    "bg-rose-50",    "text-rose-700"],
-      transfer: ["border-purple-500",  "bg-purple-50",  "text-purple-700"],
-      refund:   ["border-blue-500",    "bg-blue-50",    "text-blue-700"],
-    }[kind] || [];
-    const inactiveClasses = ["border-slate-200", "text-slate-600"];
-    if (radio.checked) {
-      btn.classList.remove(...inactiveClasses);
-      btn.classList.add(...activeClasses);
-    } else {
-      btn.classList.remove(...activeClasses);
-      btn.classList.add(...inactiveClasses);
-    }
+    btn.classList.toggle("is-kind-active", radio.checked);
   });
 }
 
@@ -224,10 +215,8 @@ document.querySelectorAll('input[name="kind"]').forEach(r => {
 });
 updateKindButtons();
 
-// ── Set today as default date ─────────────────────────────────
 document.getElementById("posted_at").value = new Date().toISOString().slice(0, 10);
 
-// ── Form submit ───────────────────────────────────────────────
 document.getElementById("txn-form").addEventListener("submit", async e => {
   e.preventDefault();
   const errEl   = document.getElementById("form-error");
@@ -235,22 +224,22 @@ document.getElementById("txn-form").addEventListener("submit", async e => {
   errEl.classList.add("hidden");
   okEl.classList.add("hidden");
 
-  const kind         = document.querySelector('input[name="kind"]:checked').value;
-  const account_id   = document.getElementById("account_id").value;
+  const kind          = document.querySelector('input[name="kind"]:checked').value;
+  const account_id    = document.getElementById("account_id").value;
   const to_account_id = kind === "transfer" ? document.getElementById("to_account_id").value : null;
-  const category_id  = (kind !== "transfer" && document.getElementById("category_id").value)
-                         ? document.getElementById("category_id").value : null;
-  const amount       = parseFloat(document.getElementById("amount").value);
-  const description  = document.getElementById("description").value.trim() || null;
-  const posted_at    = document.getElementById("posted_at").value;
+  const category_id   = (kind !== "transfer" && document.getElementById("category_id").value)
+                          ? document.getElementById("category_id").value : null;
+  const amount        = parseFloat(document.getElementById("amount").value);
+  const description   = document.getElementById("description").value.trim() || null;
+  const posted_at     = document.getElementById("posted_at").value;
 
   if (!account_id) { showError("Please select an account."); return; }
   if (kind === "transfer" && !to_account_id) { showError("Please select a destination account."); return; }
 
   const body = { kind, account_id, amount, posted_at };
   if (to_account_id) body.to_account_id = to_account_id;
-  if (category_id)   body.category_id   = category_id;
-  if (description)   body.description   = description;
+  if (category_id) body.category_id = category_id;
+  if (description) body.description = description;
 
   try {
     const res = await fetch(`/users/${USER_ID}/transactions`, {
@@ -280,29 +269,18 @@ document.getElementById("txn-form").addEventListener("submit", async e => {
   }
 });
 
-// ── Prepend a new transaction row to the list ─────────────────
-const KIND_BADGE = {
-  income:   "bg-emerald-100 text-emerald-700",
-  expense:  "bg-rose-100 text-rose-700",
-  transfer: "bg-purple-100 text-purple-700",
-  refund:   "bg-blue-100 text-blue-700",
-};
-const KIND_AMOUNT = {
-  income:   "text-emerald-600",
-  expense:  "text-rose-600",
-  transfer: "text-purple-600",
-  refund:   "text-blue-600",
-};
-
 function fmtDate(iso) {
   const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
-}
-function fmtCurrency(val) {
-  return "$" + parseFloat(val).toLocaleString("en-US", { minimumFractionDigits: 2 });
+  return d.toLocaleDateString("en-KE", { month: "short", day: "2-digit" });
 }
 
-// ── Reload stats after save ──────────────────────────────────
+function fmtCurrency(val) {
+  return "KES " + parseFloat(val).toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 async function reloadStats() {
   const res = await fetch(`/ui/transactions/${USER_ID}/stats`);
   if (!res.ok) return;
@@ -319,16 +297,16 @@ async function reloadStats() {
     const h = Math.max(Math.round((count / maxVal) * 100), 4);
     return `
       <div class="flex-1 flex flex-col items-center gap-1">
-        <span class="text-xs text-slate-500">${count}</span>
-        <div class="w-full bg-indigo-500 rounded-t" style="height: ${h}px; max-height: 96px;"></div>
-        <span class="text-xs text-slate-400 truncate w-full text-center">${daily_labels[i]}</span>
+        <span class="text-xs muted-ink">${count}</span>
+        <div class="daily-bar" style="height: ${h}px; max-height: 96px;"></div>
+        <span class="text-xs muted-ink truncate w-full text-center">${daily_labels[i]}</span>
       </div>`;
   }).join("");
 }
 
 function prependTransaction(t) {
   const list = document.querySelector("#txn-list ul") || (() => {
-    document.getElementById("txn-list").innerHTML = "<ul class='divide-y divide-slate-100'></ul>";
+    document.getElementById("txn-list").innerHTML = "<ul></ul>";
     return document.querySelector("#txn-list ul");
   })();
 
@@ -340,23 +318,24 @@ function prependTransaction(t) {
     ? (document.getElementById("category_id").selectedOptions[0]?.text || "")
     : "";
 
-  const sub = [accountName, toAccountName ? `→ ${toAccountName}` : "", categoryName ? `· ${categoryName}` : ""]
+  const sub = [accountName, toAccountName ? `-> ${toAccountName}` : "", categoryName ? `&middot; ${categoryName}` : ""]
     .filter(Boolean).join(" ");
 
   const li = document.createElement("li");
-  li.className = "txn-row px-5 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors bg-indigo-50";
+  li.className = "txn-row ledger-row txn-grid px-5 py-3 items-center gap-4";
+  li.style.background = "rgba(192, 204, 224, 0.18)";
   li.dataset.id = t.id;
   li.innerHTML = `
-    <div class="shrink-0 text-xs text-slate-400 w-16 text-right">${fmtDate(t.posted_at)}</div>
-    <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${KIND_BADGE[t.kind] || ''}">${t.kind}</span>
-    <div class="flex-1 min-w-0">
-      <p class="text-sm font-medium text-slate-800 truncate">${t.description || "—"}</p>
-      <p class="text-xs text-slate-400 truncate">${sub}</p>
+    <div class="text-xs muted-ink text-right">${fmtDate(t.posted_at)}</div>
+    <div><span class="stamp ${stampClass(t.kind)}">${t.kind}</span></div>
+    <div class="min-w-0">
+      <p class="text-sm font-semibold truncate">${t.description || "-"}</p>
+      <p class="text-xs muted-ink truncate">${sub}</p>
     </div>
-    <div class="shrink-0 text-sm font-semibold ${KIND_AMOUNT[t.kind] || ''}">${fmtCurrency(t.amount)}</div>
+    <div class="amount text-base text-right ${amountClass(t.kind)}">${fmtCurrency(t.amount)}</div>
   `;
   list.prepend(li);
-  setTimeout(() => li.classList.remove("bg-indigo-50"), 1500);
+  setTimeout(() => { li.style.background = ""; }, 1500);
 }
 </script>
 

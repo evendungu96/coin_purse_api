@@ -1,59 +1,54 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 
-{% block title %}Config — Coin Purse{% endblock %}
-{% block nav_config %}font-semibold !text-white{% endblock %}
+{% block title %}Config - Coin Purse{% endblock %}
+{% block nav_config %}nav-active{% endblock %}
 
 {% block content %}
 
 <div class="mb-6">
-  <h1 class="text-2xl font-bold text-slate-900">Settings</h1>
-  <p class="text-slate-500 text-sm mt-0.5">Manage your accounts, categories and budgets.</p>
+  <h1 class="serif text-3xl font-bold">Settings</h1>
+  <p class="muted-ink text-sm mt-0.5">Manage your accounts, categories and budgets.</p>
 </div>
 
-{# ── Error / success toast (populated by JS) ─────────────────── #}
-<div id="toast" class="hidden fixed bottom-5 right-5 z-50 max-w-sm rounded-xl shadow-lg px-5 py-3 text-sm font-medium"></div>
+<div id="toast" class="hidden fixed bottom-5 right-5 z-50 max-w-sm ledger-card px-5 py-3 text-sm font-semibold"></div>
 
 <div class="space-y-8">
 
-{# ════════════════════════════════════════════════════════════════
-   ACCOUNTS
-   ════════════════════════════════════════════════════════════════ #}
 <section>
-  <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Accounts</h2>
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+  <h2 class="section-label mb-3">Accounts</h2>
+  {% call ui.note("blue", "overflow-hidden", "soft-left") %}
 
-    {# Existing accounts #}
     {% if accounts %}
-    <ul id="account-list" class="divide-y divide-slate-100">
+    <ul id="account-list">
       {% for acct in accounts %}
-      <li id="acct-{{ acct.id }}" class="px-5 py-3 flex items-center justify-between gap-4">
+      <li id="acct-{{ acct.id }}" class="note-row flex items-center justify-between gap-4">
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-slate-800">{{ acct.name }}</p>
-          <p class="text-xs text-slate-400 capitalize">{{ acct.account_type }} · opening {{ acct.opening_balance | currency }}</p>
+          <p class="text-sm font-semibold">{{ acct.name }}</p>
+          <p class="text-xs muted-ink capitalize">
+            {{ acct.account_type }} &middot; opening <span class="amount">{{ acct.opening_balance | currency }}</span>
+          </p>
         </div>
-        <button
-          onclick="deleteAccount('{{ acct.id }}')"
-          class="text-xs text-rose-500 hover:text-rose-700 font-medium shrink-0">
+        <button onclick="deleteAccount('{{ acct.id }}')" class="link-danger shrink-0">
           Remove
         </button>
       </li>
       {% endfor %}
     </ul>
     {% else %}
-    <p id="no-accounts-msg" class="px-5 py-4 text-sm text-slate-400">No accounts yet.</p>
+    <p id="no-accounts-msg" class="px-5 py-4 text-sm muted-ink">No accounts yet.</p>
     {% endif %}
 
-    {# Add account form #}
-    <div class="px-5 py-4 border-t border-slate-100 bg-slate-50">
-      <p class="text-xs font-semibold text-slate-500 mb-3">Add Account</p>
+    <div class="px-5 py-4 border-t" style="border-color: rgba(0,0,0,0.08); background: rgba(0,0,0,0.025);">
+      <p class="section-label mb-3">Add Account</p>
       <form id="account-form" class="flex flex-wrap gap-3 items-end" onsubmit="createAccount(event)">
         <div class="flex flex-col gap-1">
-          <label class="text-xs text-slate-500">Name</label>
-          <input name="name" required class="input-field" placeholder="e.g. Savings" />
+          <label class="section-label">Name</label>
+          <input name="name" required class="ledger-input" placeholder="e.g. Savings" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-xs text-slate-500">Type</label>
-          <select name="account_type" class="input-field">
+          <label class="section-label">Type</label>
+          <select name="account_type" class="ledger-input">
             <option value="bank">Bank</option>
             <option value="cash">Cash</option>
             <option value="card">Card</option>
@@ -62,89 +57,67 @@
           </select>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-xs text-slate-500">Opening Balance</label>
-          <input name="opening_balance" type="number" step="0.01" min="0" value="0.00" class="input-field w-32" />
+          <label class="section-label">Opening Balance</label>
+          <input name="opening_balance" type="number" step="0.01" min="0" value="0.00" class="ledger-input w-32" />
         </div>
-        <button type="submit" class="btn-primary">Add</button>
+        <button type="submit" class="ledger-btn">Add</button>
       </form>
     </div>
-  </div>
+  {% endcall %}
 </section>
 
-{# ════════════════════════════════════════════════════════════════
-   CATEGORIES
-   ════════════════════════════════════════════════════════════════ #}
 <section>
-  <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Categories</h2>
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+  <h2 class="section-label mb-3">Categories</h2>
+  {% call ui.note("green", "overflow-hidden", "soft-right") %}
 
     {% if categories %}
-    <ul id="category-list" class="divide-y divide-slate-100">
+    <ul id="category-list">
       {% for cat in categories %}
-      <li id="cat-{{ cat.id }}" class="px-5 py-3 flex items-center justify-between gap-4">
-        <p class="text-sm font-medium text-slate-800">{{ cat.name }}</p>
-        <button
-          onclick="deleteCategory('{{ cat.id }}')"
-          class="text-xs text-rose-500 hover:text-rose-700 font-medium shrink-0">
+      <li id="cat-{{ cat.id }}" class="note-row flex items-center justify-between gap-4">
+        <p class="text-sm font-semibold">{{ cat.name }}</p>
+        <button onclick="deleteCategory('{{ cat.id }}')" class="link-danger shrink-0">
           Remove
         </button>
       </li>
       {% endfor %}
     </ul>
     {% else %}
-    <p id="no-categories-msg" class="px-5 py-4 text-sm text-slate-400">No categories yet.</p>
+    <p id="no-categories-msg" class="px-5 py-4 text-sm muted-ink">No categories yet.</p>
     {% endif %}
 
-    {# Add category form #}
-    <div class="px-5 py-4 border-t border-slate-100 bg-slate-50">
-      <p class="text-xs font-semibold text-slate-500 mb-3">Add Category</p>
+    <div class="px-5 py-4 border-t" style="border-color: rgba(0,0,0,0.08); background: rgba(0,0,0,0.025);">
+      <p class="section-label mb-3">Add Category</p>
       <form id="category-form" class="flex gap-3 items-end" onsubmit="createCategory(event)">
         <div class="flex flex-col gap-1 flex-1">
-          <label class="text-xs text-slate-500">Name</label>
-          <input name="name" required class="input-field" placeholder="e.g. Groceries" />
+          <label class="section-label">Name</label>
+          <input name="name" required class="ledger-input w-full" placeholder="e.g. Groceries" />
         </div>
-        <button type="submit" class="btn-primary">Add</button>
+        <button type="submit" class="ledger-btn">Add</button>
       </form>
     </div>
-  </div>
+  {% endcall %}
 </section>
 
-{# ════════════════════════════════════════════════════════════════
-   BUDGETS
-   ════════════════════════════════════════════════════════════════ #}
 <section>
-  <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Budgets</h2>
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
-    <p class="text-sm text-slate-600">Create, clone, and manage your budget periods and line items.</p>
-    <a href="/ui/budgets/{{ user_id }}"
-       class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors shrink-0">
-      Manage Budgets →
+  <h2 class="section-label mb-3">Budgets</h2>
+  {% call ui.note("peach", "p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4", "soft-left") %}
+    <p class="text-sm muted-ink">Create, clone, and manage your budget periods and line items.</p>
+    <a href="/ui/budgets/{{ user_id }}" class="ledger-btn shrink-0 text-center">
+      Manage Budgets
     </a>
-  </div>
+  {% endcall %}
 </section>
 
-</div>{# end space-y-8 #}
+</div>
 
-{# ── Shared styles #}
-<style>
-  .input-field {
-    @apply border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white;
-  }
-  .btn-primary {
-    @apply bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors;
-  }
-</style>
-
-{# ── JS ──────────────────────────────────────────────────────── #}
 <script>
 const USER_ID = "{{ user_id }}";
-const API = "";  // same origin
+const API = "";
 
 function toast(msg, ok = true) {
   const el = document.getElementById("toast");
   el.textContent = msg;
-  el.className = `fixed bottom-5 right-5 z-50 max-w-sm rounded-xl shadow-lg px-5 py-3 text-sm font-medium
-    ${ok ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"}`;
+  el.className = `fixed bottom-5 right-5 z-50 max-w-sm ledger-card px-5 py-3 text-sm font-semibold ${ok ? "ink-positive" : "ink-negative"}`;
   setTimeout(() => el.classList.add("hidden"), 3000);
 }
 
@@ -157,7 +130,6 @@ async function apiFetch(method, path, body) {
   return res;
 }
 
-/* ── ACCOUNTS ── */
 async function createAccount(e) {
   e.preventDefault();
   const fd = new FormData(e.target);
@@ -177,7 +149,6 @@ async function deleteAccount(id) {
   else { const d = await res.json(); toast(d.detail || "Error", false); }
 }
 
-/* ── CATEGORIES ── */
 async function createCategory(e) {
   e.preventDefault();
   const fd = new FormData(e.target);
@@ -194,8 +165,6 @@ async function deleteCategory(id) {
   if (res.ok) { toast("Category removed"); document.getElementById(`cat-${id}`)?.remove(); }
   else { const d = await res.json(); toast(d.detail || "Error", false); }
 }
-
-
 </script>
 
 {% endblock %}

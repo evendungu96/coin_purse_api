@@ -1,0 +1,21 @@
+{% macro tape(class_name="") -%}
+<div class="tape {{ class_name }}" aria-hidden="true"></div>
+{%- endmacro %}
+
+{% macro note(color="yellow", class_name="", rotate="") -%}
+<div class="note note-{{ color }} {{ class_name }}"{% if rotate %} data-rotate="{{ rotate }}"{% endif %}>
+  {{ caller() }}
+</div>
+{%- endmacro %}
+
+{% macro stamp(kind, label=None, class_name="") -%}
+{% set normalized = kind | string %}
+{% if normalized in ["income", "current"] %}
+  {% set stamp_class = "stamp-green" %}
+{% elif normalized in ["expense", "over"] %}
+  {% set stamp_class = "stamp-red" %}
+{% else %}
+  {% set stamp_class = "stamp-blue" %}
+{% endif %}
+<span class="stamp {{ stamp_class }} {{ class_name }}">{{ label if label is not none else normalized }}</span>
+{%- endmacro %}

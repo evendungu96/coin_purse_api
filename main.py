@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from common.auth.config import JWT_SECRET
@@ -21,6 +24,11 @@ from routes.views import router as views_router
 app = FastAPI(title="Coin Purse")
 register_error_handlers(app)
 app.add_middleware(SessionMiddleware, secret_key=JWT_SECRET)
+app.mount(
+    "/static",
+    StaticFiles(directory=Path(__file__).parent / "static"),
+    name="static",
+)
 
 app.include_router(auth_router)
 app.include_router(accounts_router)
