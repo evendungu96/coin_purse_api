@@ -142,9 +142,9 @@
         </div>
       </div>
       {# Total #}
-      <div class="text-right shrink-0 mr-2">
-        <p class="text-xs text-slate-400 uppercase tracking-wide">Total</p>
-        <p class="text-sm font-bold text-slate-800">{{ bd['items'] | sum(attribute='limit_amount') | currency }}</p>
+      <div class="text-right shrink-0 mr-2 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5">
+        <p class="text-xs font-medium text-indigo-400 uppercase tracking-wide">Total</p>
+        <p class="text-base font-extrabold text-indigo-700">{{ bd['items'] | sum(attribute='limit_amount') | currency }}</p>
       </div>
       {# Action buttons — stopPropagation so they don't toggle the accordion #}
       <div class="flex items-center gap-2 shrink-0" onclick="event.stopPropagation()">
