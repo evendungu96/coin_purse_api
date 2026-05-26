@@ -183,15 +183,15 @@
       </div>
       <ul id="items-{{ b.id }}" class="divide-y divide-slate-100">
         {% for item in bd['items'] %}
-        <li id="bitem-{{ item.id }}" class="px-5 py-3">
+        <li id="bitem-{{ item.id }}" class="px-5 py-3 group hover:bg-indigo-50 transition-colors cursor-default">
           {# Display row #}
           <div id="display-{{ item.id }}" class="flex items-center justify-between gap-4">
             <div class="flex items-center gap-6 min-w-0 flex-1">
-              <p class="text-sm text-slate-700 w-36 truncate">{{ item.category_name }}</p>
-              <p class="text-sm text-slate-500 truncate">{{ item.name if item.name else '—' }}</p>
+              <p class="text-sm text-slate-700 w-36 truncate group-hover:text-indigo-700 group-hover:font-semibold transition-colors">{{ item.category_name }}</p>
+              <p class="text-sm text-slate-500 truncate group-hover:text-indigo-500 group-hover:font-semibold transition-colors">{{ item.name if item.name else '—' }}</p>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-slate-800">{{ item.limit_amount | currency }}</span>
+              <span class="text-sm font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">{{ item.limit_amount | currency }}</span>
               <button onclick="startEditItem('{{ item.id }}')"
                       class="text-slate-300 hover:text-indigo-500 transition-colors"
                       title="Edit">

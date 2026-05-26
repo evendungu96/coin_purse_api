@@ -120,12 +120,14 @@ def _upsert_clone_items(db: Session, budget_id: UUID, source_items: list) -> Non
         if existing:
             existing.is_active = True
             existing.limit_amount = item.limit_amount
+            existing.name = item.name
         else:
             db.add(
                 BudgetItem(
                     budget_id=budget_id,
                     category_id=item.category_id,
                     limit_amount=item.limit_amount,
+                    name=item.name,
                 )
             )
 
