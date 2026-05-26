@@ -34,7 +34,11 @@ class BudgetUpdate(APIModel):
 
     @model_validator(mode="after")
     def validate_period(self):
-        if self.period_start and self.period_end and self.period_end < self.period_start:
+        if (
+            self.period_start
+            and self.period_end
+            and self.period_end < self.period_start
+        ):
             raise ValueError("period_end must be >= period_start")
         return self
 
@@ -65,10 +69,12 @@ class BudgetClone(APIModel):
 class BudgetItemCreate(APIModel):
     category_id: uuid.UUID
     limit_amount: Decimal = Field(ge=0)
+    name: str | None = Field(default=None, max_length=200)
 
 
 class BudgetItemUpdate(APIModel):
     limit_amount: Decimal | None = Field(default=None, ge=0)
+    name: str | None = Field(default=None, max_length=200)
     is_active: bool | None = None
 
 
@@ -78,6 +84,7 @@ class BudgetItemRead(ReadBase):
     category_id: uuid.UUID
     category_name: str
     limit_amount: Decimal
+    name: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -94,4 +101,5 @@ class BudgetItemRead(ReadBase):
             "category_id": data.category_id,
             "category_name": data.category.name if data.category else "",
             "limit_amount": data.limit_amount,
+            "name": data.name,
         }

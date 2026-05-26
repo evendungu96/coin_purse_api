@@ -56,8 +56,9 @@ def create_budget_item(
             budget_id=budget_id,
             category_id=payload.category_id,
             limit_amount=payload.limit_amount,
+            name=payload.name,
         ),
-        updates={"limit_amount": payload.limit_amount},
+        updates={"limit_amount": payload.limit_amount, "name": payload.name},
         conflict_detail="Budget item already exists for this category.",
     )
 

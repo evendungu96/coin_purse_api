@@ -310,6 +310,7 @@ class BudgetItem(TimestampMixin, Base):
         nullable=False,
     )
     limit_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    name: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     budget: Mapped[Budget] = relationship(back_populates="items")
     category: Mapped[Category] = relationship(back_populates="budget_items")

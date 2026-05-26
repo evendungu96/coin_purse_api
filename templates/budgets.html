@@ -172,7 +172,10 @@
       <ul id="items-{{ b.id }}" class="divide-y divide-slate-100">
         {% for item in bd['items'] %}
         <li id="bitem-{{ item.id }}" class="px-5 py-3 flex items-center justify-between gap-4">
-          <p class="text-sm text-slate-700">{{ item.category_name }}</p>
+          <div class="min-w-0">
+            <p class="text-sm text-slate-700">{{ item.category_name }}</p>
+            {% if item.name %}<p class="text-xs text-slate-400">{{ item.name }}</p>{% endif %}
+          </div>
           <div class="flex items-center gap-2">
             <span id="amount-{{ item.id }}" class="text-sm font-semibold text-slate-800">{{ item.limit_amount | currency }}</span>
             <input id="amount-input-{{ item.id }}" type="number" step="0.01" min="0"
@@ -217,6 +220,11 @@
               <option value="{{ cat.id }}">{{ cat.name }}</option>
               {% endfor %}
             </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-slate-500">Name <span class="text-slate-400">(optional)</span></label>
+            <input name="name" type="text" maxlength="200"
+                   class="input-field w-44" placeholder="e.g. Groceries" />
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs text-slate-500">Monthly Limit</label>
@@ -370,9 +378,11 @@ async function unsetTemplate(id) {
 async function createBudgetItem(e, budgetId) {
   e.preventDefault();
   const fd = new FormData(e.target);
+  const name = fd.get("name")?.trim() || null;
   const res = await apiFetch("POST", `/users/${USER_ID}/budgets/${budgetId}/items`, {
     category_id: fd.get("category_id"),
     limit_amount: fd.get("limit_amount"),
+    ...(name && { name }),
   });
   if (res.ok) { toast("Item added"); location.reload(); }
   else { const d = await res.json(); toast(d.detail || "Error", false); }
