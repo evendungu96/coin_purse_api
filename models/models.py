@@ -292,9 +292,6 @@ class Budget(TimestampMixin, Base):
 class BudgetItem(TimestampMixin, Base):
     __tablename__ = "budget_items"
     __table_args__ = (
-        UniqueConstraint(
-            "budget_id", "category_id", name="uq_budget_items_budget_category"
-        ),
         CheckConstraint("limit_amount >= 0", name="ck_budget_items_limit_nonneg"),
         Index("ix_budget_items_budget_id", "budget_id"),
     )
