@@ -141,6 +141,11 @@
           </p>
         </div>
       </div>
+      {# Total #}
+      <div class="text-right shrink-0 mr-2">
+        <p class="text-xs text-slate-400 uppercase tracking-wide">Total</p>
+        <p class="text-sm font-bold text-slate-800">{{ bd['items'] | sum(attribute='limit_amount') | currency }}</p>
+      </div>
       {# Action buttons — stopPropagation so they don't toggle the accordion #}
       <div class="flex items-center gap-2 shrink-0" onclick="event.stopPropagation()">
         {% if b.is_template %}
@@ -169,36 +174,59 @@
     <div id="body-{{ b.id }}" class="hidden border-t border-slate-100">
 
       {# Budget items #}
+      <div class="px-5 py-2 flex items-center justify-between gap-4 border-t border-slate-100 bg-slate-50">
+        <div class="flex items-center gap-6 min-w-0 flex-1">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide w-36">Category</p>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Name</p>
+        </div>
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Limit</p>
+      </div>
       <ul id="items-{{ b.id }}" class="divide-y divide-slate-100">
         {% for item in bd['items'] %}
-        <li id="bitem-{{ item.id }}" class="px-5 py-3 flex items-center justify-between gap-4">
-          <div class="min-w-0">
-            <p class="text-sm text-slate-700">{{ item.category_name }}</p>
-            {% if item.name %}<p class="text-xs text-slate-400">{{ item.name }}</p>{% endif %}
+        <li id="bitem-{{ item.id }}" class="px-5 py-3">
+          {# Display row #}
+          <div id="display-{{ item.id }}" class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-6 min-w-0 flex-1">
+              <p class="text-sm text-slate-700 w-36 truncate">{{ item.category_name }}</p>
+              <p class="text-sm text-slate-500 truncate">{{ item.name if item.name else '—' }}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold text-slate-800">{{ item.limit_amount | currency }}</span>
+              <button onclick="startEditItem('{{ item.id }}')"
+                      class="text-slate-300 hover:text-indigo-500 transition-colors"
+                      title="Edit">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                </svg>
+              </button>
+              <button onclick="deleteBudgetItem('{{ b.id }}', '{{ item.id }}')"
+                      class="text-xs text-rose-500 hover:text-rose-700 font-medium ml-2">Remove</button>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span id="amount-{{ item.id }}" class="text-sm font-semibold text-slate-800">{{ item.limit_amount | currency }}</span>
-            <input id="amount-input-{{ item.id }}" type="number" step="0.01" min="0"
-                   class="hidden input-field w-28 text-sm py-0.5"
-                   value="{{ item.limit_amount }}"
-                   onkeydown="handleAmountKey(event, '{{ b.id }}', '{{ item.id }}')" />
-            <button id="edit-btn-{{ item.id }}"
-                    onclick="startEditItem('{{ item.id }}')"
-                    class="text-slate-300 hover:text-indigo-500 transition-colors"
-                    title="Edit amount">
-              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-              </svg>
-            </button>
-            <button id="cancel-btn-{{ item.id }}"
-                    onclick="cancelEditItem('{{ item.id }}')"
-                    class="hidden text-xs text-slate-400 hover:text-rose-500 transition-colors"
-                    title="Cancel edit">✕</button>
-            <button
-              onclick="deleteBudgetItem('{{ b.id }}', '{{ item.id }}')"
-              class="text-xs text-rose-500 hover:text-rose-700 font-medium ml-2">
-              Remove
-            </button>
+          {# Edit row #}
+          <div id="edit-{{ item.id }}" class="hidden flex flex-wrap gap-3 items-end pt-2">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-slate-500">Category</label>
+              <select id="edit-cat-{{ item.id }}" class="input-field text-sm">
+                {% for cat in categories %}
+                <option value="{{ cat.id }}"{% if cat.id|string == item.category_id|string %} selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-slate-500">Name <span class="text-slate-400">(optional)</span></label>
+              <input id="edit-name-{{ item.id }}" type="text" maxlength="200"
+                     value="{{ item.name or '' }}" class="input-field w-44 text-sm" placeholder="e.g. Groceries" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-slate-500">Limit</label>
+              <input id="edit-amount-{{ item.id }}" type="number" step="0.01" min="0"
+                     value="{{ item.limit_amount }}" class="input-field w-28 text-sm" />
+            </div>
+            <div class="flex items-end gap-2">
+              <button onclick="saveEditItem('{{ b.id }}', '{{ item.id }}')" class="btn-primary text-xs">Save</button>
+              <button onclick="cancelEditItem('{{ item.id }}')" class="text-xs text-slate-400 hover:text-rose-500 transition-colors">Cancel</button>
+            </div>
           </div>
         </li>
         {% endfor %}
@@ -389,45 +417,27 @@ async function createBudgetItem(e, budgetId) {
 }
 
 function startEditItem(itemId) {
-  document.getElementById(`amount-${itemId}`).classList.add("hidden");
-  document.getElementById(`edit-btn-${itemId}`).classList.add("hidden");
-  const input = document.getElementById(`amount-input-${itemId}`);
-  input.classList.remove("hidden");
-  document.getElementById(`cancel-btn-${itemId}`).classList.remove("hidden");
-  input.focus();
-  input.select();
+  document.getElementById(`display-${itemId}`).classList.add("hidden");
+  document.getElementById(`edit-${itemId}`).classList.remove("hidden");
 }
 
 function cancelEditItem(itemId) {
-  document.getElementById(`amount-input-${itemId}`).classList.add("hidden");
-  document.getElementById(`cancel-btn-${itemId}`).classList.add("hidden");
-  document.getElementById(`amount-${itemId}`).classList.remove("hidden");
-  document.getElementById(`edit-btn-${itemId}`).classList.remove("hidden");
+  document.getElementById(`edit-${itemId}`).classList.add("hidden");
+  document.getElementById(`display-${itemId}`).classList.remove("hidden");
 }
 
-function handleAmountKey(e, budgetId, itemId) {
-  if (e.key === "Enter") { e.preventDefault(); saveItemAmount(budgetId, itemId); }
-  if (e.key === "Escape") { cancelEditItem(itemId); }
-}
-
-async function saveItemAmount(budgetId, itemId) {
-  const input = document.getElementById(`amount-input-${itemId}`);
-  const val = parseFloat(input.value);
-  if (isNaN(val) || val < 0) { toast("Invalid amount", false); return; }
+async function saveEditItem(budgetId, itemId) {
+  const cat = document.getElementById(`edit-cat-${itemId}`).value;
+  const name = document.getElementById(`edit-name-${itemId}`).value.trim();
+  const amt = parseFloat(document.getElementById(`edit-amount-${itemId}`).value);
+  if (isNaN(amt) || amt < 0) { toast("Invalid amount", false); return; }
   const res = await apiFetch("PATCH", `/users/${USER_ID}/budgets/${budgetId}/items/${itemId}`, {
-    limit_amount: val.toFixed(2),
+    category_id: cat,
+    limit_amount: amt.toFixed(2),
+    name: name || null,
   });
-  if (res.ok) {
-    const data = await res.json();
-    const amt = parseFloat(data.limit_amount);
-    document.getElementById(`amount-${itemId}`).textContent =
-      "$" + amt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    cancelEditItem(itemId);
-    toast("Amount updated");
-  } else {
-    const d = await res.json();
-    toast(d.detail || "Error", false);
-  }
+  if (res.ok) { toast("Item updated"); location.reload(); }
+  else { const d = await res.json(); toast(d.detail || "Error", false); }
 }
 
 async function deleteBudgetItem(budgetId, itemId) {
