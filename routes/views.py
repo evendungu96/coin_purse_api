@@ -162,6 +162,7 @@ def ui_budgets(
                 BudgetItem.id.label("id"),
                 BudgetItem.limit_amount.label("limit_amount"),
                 BudgetItem.category_id.label("category_id"),
+                BudgetItem.name.label("name"),
                 Category.name.label("category_name"),
             )
             .order_by(Category.name)
