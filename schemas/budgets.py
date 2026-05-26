@@ -73,6 +73,7 @@ class BudgetItemCreate(APIModel):
 
 
 class BudgetItemUpdate(APIModel):
+    category_id: uuid.UUID | None = None
     limit_amount: Decimal | None = Field(default=None, ge=0)
     name: str | None = Field(default=None, max_length=200)
     is_active: bool | None = None

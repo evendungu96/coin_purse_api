@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 from common.db.config import get_db
 from helpers.db_utils import (
     active_query,
-    get_or_reactivate,
     require_owned_active,
     soft_delete,
 )
@@ -45,22 +44,16 @@ def create_budget_item(
     _require_budget(db, user_id, budget_id)
     _require_category(db, user_id, payload.category_id)
 
-    return get_or_reactivate(
-        db,
-        BudgetItem,
-        [
-            BudgetItem.budget_id == budget_id,
-            BudgetItem.category_id == payload.category_id,
-        ],
-        create=lambda: BudgetItem(
-            budget_id=budget_id,
-            category_id=payload.category_id,
-            limit_amount=payload.limit_amount,
-            name=payload.name,
-        ),
-        updates={"limit_amount": payload.limit_amount, "name": payload.name},
-        conflict_detail="Budget item already exists for this category.",
+    item = BudgetItem(
+        budget_id=budget_id,
+        category_id=payload.category_id,
+        limit_amount=payload.limit_amount,
+        name=payload.name,
     )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
 
 
 @router.get("", response_model=list[BudgetItemRead])
@@ -106,7 +99,10 @@ def update_budget_item(
     if not item:
         raise HTTPException(status_code=404, detail="Budget item not found")
 
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    updates = payload.model_dump(exclude_unset=True)
+    if "category_id" in updates:
+        _require_category(db, user_id, updates["category_id"])
+    for k, v in updates.items():
         setattr(item, k, v)
 
     db.commit()
