@@ -396,98 +396,82 @@ function prependTransaction(t) {
 
 // ── Budget item combobox ──────────────────────────────────────
 (function () {
-  const searchEl   = document.getElementById("bi-search");
-  const hiddenEl   = document.getElementById("budget_item_id");
-  const dropdown   = document.getElementById("bi-dropdown");
-  const chevronEl  = document.getElementById("bi-chevron");
+  const wrap      = document.getElementById("bi-combobox");
+  if (!wrap) return;
+  const searchEl  = document.getElementById("bi-search");
+  const hiddenEl  = document.getElementById("budget_item_id");
+  const dropdown  = document.getElementById("bi-dropdown");
   const chevronIcon = document.getElementById("bi-chevron-icon");
-  const allItems   = Array.from(dropdown.querySelectorAll("li"));
+  const allItems  = Array.from(dropdown.querySelectorAll("li"));
+  let isOpen = false;
 
-  function openDropdown() {
-    filterItems(searchEl.value);
+  function open() {
+    filter(searchEl.value);
     dropdown.classList.remove("hidden");
     chevronIcon.style.transform = "rotate(180deg)";
-    searchEl.placeholder = "Search…";
+    isOpen = true;
   }
 
-  function closeDropdown() {
+  function close() {
     dropdown.classList.add("hidden");
     chevronIcon.style.transform = "";
-    searchEl.placeholder = hiddenEl.value ? searchEl.value : "— none —";
+    isOpen = false;
+    if (!hiddenEl.value) searchEl.value = "";
   }
 
-  function filterItems(query) {
-    const q = query.trim().toLowerCase();
-    let anyVisible = false;
+  function filter(q) {
+    const query = q.trim().toLowerCase();
     allItems.forEach(li => {
-      const match = !q || li.textContent.trim().toLowerCase().includes(q);
-      li.style.display = match ? "" : "none";
-      if (match) anyVisible = true;
+      li.style.display = (!query || li.textContent.toLowerCase().includes(query)) ? "" : "none";
     });
   }
 
-  function selectItem(li) {
-    hiddenEl.value  = li.dataset.value;
-    searchEl.value  = li.dataset.value ? li.textContent.trim() : "";
-    closeDropdown();
+  function pick(li) {
+    hiddenEl.value = li.dataset.value || "";
+    searchEl.value = li.dataset.value ? li.textContent.trim() : "";
+    close();
   }
 
-  searchEl.addEventListener("focus", openDropdown);
+  // Open on click (stopPropagation prevents immediate re-close by document handler)
+  searchEl.addEventListener("click", e => { e.stopPropagation(); if (!isOpen) open(); });
 
-  chevronEl.addEventListener("mousedown", e => {
-    e.preventDefault();
-    dropdown.classList.contains("hidden") ? openDropdown() : closeDropdown();
-    if (!dropdown.classList.contains("hidden")) searchEl.focus();
+  document.getElementById("bi-chevron").addEventListener("click", e => {
+    e.stopPropagation();
+    isOpen ? close() : open();
+    if (!isOpen) searchEl.focus();
   });
 
   searchEl.addEventListener("input", () => {
-    // Clear hidden value while typing (no item chosen yet)
     hiddenEl.value = "";
-    filterItems(searchEl.value);
-    dropdown.classList.remove("hidden");
+    filter(searchEl.value);
+    if (!isOpen) open();
   });
 
-  dropdown.addEventListener("mousedown", e => {
+  dropdown.addEventListener("click", e => {
     const li = e.target.closest("li");
-    if (li) { e.preventDefault(); selectItem(li); }
+    if (li) { e.stopPropagation(); pick(li); }
   });
 
   searchEl.addEventListener("keydown", e => {
-    if (e.key === "Escape") { closeDropdown(); searchEl.blur(); return; }
+    if (e.key === "Escape") { close(); searchEl.blur(); return; }
+    if (!isOpen && (e.key === "ArrowDown" || e.key === "Enter")) { open(); return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      dropdown.classList.remove("hidden");
       const visible = allItems.filter(li => li.style.display !== "none");
-      if (!visible.length) return;
-      const focused = dropdown.querySelector("li.bg-indigo-100");
-      let idx = focused ? visible.indexOf(focused) : -1;
-      if (focused) focused.classList.remove("bg-indigo-100");
-      idx = e.key === "ArrowDown" ? Math.min(idx + 1, visible.length - 1)
-                                  : Math.max(idx - 1, 0);
-      visible[idx].classList.add("bg-indigo-100");
-      visible[idx].scrollIntoView({ block: "nearest" });
+      const cur = dropdown.querySelector("li.bg-indigo-100");
+      let idx = cur ? visible.indexOf(cur) : -1;
+      if (cur) cur.classList.remove("bg-indigo-100");
+      idx = e.key === "ArrowDown" ? Math.min(idx + 1, visible.length - 1) : Math.max(idx - 1, 0);
+      if (visible[idx]) { visible[idx].classList.add("bg-indigo-100"); visible[idx].scrollIntoView({ block: "nearest" }); }
     }
     if (e.key === "Enter") {
       e.preventDefault();
-      const focused = dropdown.querySelector("li.bg-indigo-100");
-      if (focused) selectItem(focused);
+      const cur = dropdown.querySelector("li.bg-indigo-100");
+      if (cur) pick(cur);
     }
   });
 
-  searchEl.addEventListener("blur", () => {
-    // Delay so mousedown on dropdown fires first
-    setTimeout(() => {
-      closeDropdown();
-      // If user typed but didn't pick, restore last selected text or clear
-      if (!hiddenEl.value) searchEl.value = "";
-    }, 150);
-  });
-
-  document.addEventListener("click", e => {
-    if (!document.getElementById("bi-combobox").contains(e.target)) {
-      closeDropdown();
-    }
-  });
+  document.addEventListener("click", () => { if (isOpen) close(); });
 })();
 </script>
 
