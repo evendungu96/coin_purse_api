@@ -29,6 +29,7 @@ class TransactionCreate(APIModel):
 
     refunded_transaction_id: uuid.UUID | None = None
     transfer_group_id: uuid.UUID | None = None  # server can generate if omitted
+    budget_item_id: uuid.UUID | None = None
 
     @model_validator(mode="after")
     def validate_business_rules(self):
@@ -59,6 +60,7 @@ class TransactionUpdate(APIModel):
     # For transfers you may allow editing to_account_id
     to_account_id: uuid.UUID | None = None
 
+    budget_item_id: uuid.UUID | None = None
     is_active: bool | None = None
 
 
@@ -82,11 +84,19 @@ class TransactionRead(ReadBase):
     refunded_transaction_id: uuid.UUID | None = None
     transfer_group_id: uuid.UUID | None = None
 
+    budget_item_id: uuid.UUID | None = None
+    budget_item_name: str | None = None
+
     @model_validator(mode="before")
     @classmethod
     def _resolve_names(cls, data):
         if isinstance(data, dict):
             return data
+        bi = data.budget_item
+        if bi:
+            budget_item_name = bi.name or bi.category.name if bi.category else None
+        else:
+            budget_item_name = None
         return {
             "id": data.id,
             "created_at": data.created_at,
@@ -106,4 +116,6 @@ class TransactionRead(ReadBase):
             "posted_at": data.posted_at,
             "refunded_transaction_id": data.refunded_transaction_id,
             "transfer_group_id": data.transfer_group_id,
+            "budget_item_id": data.budget_item_id,
+            "budget_item_name": budget_item_name,
         }

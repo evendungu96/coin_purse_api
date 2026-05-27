@@ -97,6 +97,18 @@
                  class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
         </div>
 
+        {# Budget Item #}
+        <div id="budget-item-row">
+          <label class="block text-xs font-medium text-slate-600 mb-1">Budget Item <span class="text-slate-400">(optional)</span></label>
+          <select id="budget_item_id"
+                  class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <option value="">— none —</option>
+            {% for bi in budget_items %}
+            <option value="{{ bi.id }}">{{ bi.budget.name }} — {{ bi.category.name }}{% if bi.name %} ({{ bi.name }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+
         {# Error / success banners #}
         <div id="form-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"></div>
         <div id="form-success" class="hidden text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"></div>
@@ -168,6 +180,7 @@
                 {{ t.account.name }}
                 {% if t.to_account_id %} → {{ t.to_account.name }}{% endif %}
                 {% if t.category %} · {{ t.category.name }}{% endif %}
+                {% if t.budget_item %} · <span class="text-indigo-400">{{ t.budget_item.name or t.budget_item.category.name }}</span>{% endif %}
               </p>
             </div>
             <div class="shrink-0 text-sm font-semibold
@@ -219,6 +232,7 @@ document.querySelectorAll('input[name="kind"]').forEach(r => {
     const kind = r.value;
     document.getElementById("to-account-row").classList.toggle("hidden", kind !== "transfer");
     document.getElementById("category-row").classList.toggle("hidden", kind === "transfer");
+    document.getElementById("budget-item-row").classList.toggle("hidden", kind === "transfer");
     updateKindButtons();
   });
 });
@@ -240,6 +254,7 @@ document.getElementById("txn-form").addEventListener("submit", async e => {
   const to_account_id = kind === "transfer" ? document.getElementById("to_account_id").value : null;
   const category_id  = (kind !== "transfer" && document.getElementById("category_id").value)
                          ? document.getElementById("category_id").value : null;
+  const budget_item_id = document.getElementById("budget_item_id").value || null;
   const amount       = parseFloat(document.getElementById("amount").value);
   const description  = document.getElementById("description").value.trim() || null;
   const posted_at    = document.getElementById("posted_at").value;
@@ -251,6 +266,7 @@ document.getElementById("txn-form").addEventListener("submit", async e => {
   if (to_account_id) body.to_account_id = to_account_id;
   if (category_id)   body.category_id   = category_id;
   if (description)   body.description   = description;
+  if (budget_item_id) body.budget_item_id = budget_item_id;
 
   try {
     const res = await fetch(`/users/${USER_ID}/transactions`, {
@@ -339,8 +355,11 @@ function prependTransaction(t) {
   const categoryName = t.category_id
     ? (document.getElementById("category_id").selectedOptions[0]?.text || "")
     : "";
+  const budgetItemName = t.budget_item_name
+    ? `· ${t.budget_item_name}`
+    : (budget_item_id ? `· ${document.getElementById("budget_item_id").selectedOptions[0]?.text || ""}` : "");
 
-  const sub = [accountName, toAccountName ? `→ ${toAccountName}` : "", categoryName ? `· ${categoryName}` : ""]
+  const sub = [accountName, toAccountName ? `→ ${toAccountName}` : "", categoryName ? `· ${categoryName}` : "", budgetItemName]
     .filter(Boolean).join(" ");
 
   const li = document.createElement("li");

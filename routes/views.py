@@ -267,6 +267,15 @@ def ui_transactions(
     )
     kinds = active_query(db, TransactionKind).order_by(TransactionKind.name).all()
 
+    # Budget items for the allocation dropdown (active budgets only)
+    budget_items = (
+        active_query(db, BudgetItem)
+        .join(Budget, BudgetItem.budget_id == Budget.id)
+        .filter(Budget.user_id == user_id, Budget.is_active.is_(True))
+        .order_by(Budget.period_start.desc())
+        .all()
+    )
+
     # Recent transactions — last 50
     transactions = (
         active_query(db, Transaction)
@@ -311,6 +320,7 @@ def ui_transactions(
             "accounts": accounts,
             "categories": categories,
             "kinds": kinds,
+            "budget_items": budget_items,
             "transactions": transactions,
             "kind_counts": kind_counts,
             "daily_labels": daily_labels,

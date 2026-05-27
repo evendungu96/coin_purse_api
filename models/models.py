@@ -234,6 +234,13 @@ class Transaction(TimestampMixin, Base):
         UUID(as_uuid=True), nullable=True
     )
 
+    # optional link to a budget item for allocation tracking
+    budget_item_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("budget_items.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     user: Mapped[User] = relationship(back_populates="transactions")
     kind: Mapped[TransactionKind] = relationship(back_populates="transactions")
 
@@ -252,6 +259,8 @@ class Transaction(TimestampMixin, Base):
         remote_side="Transaction.id",
         foreign_keys=[refunded_transaction_id],
     )
+
+    budget_item: Mapped[BudgetItem | None] = relationship(foreign_keys=[budget_item_id])
 
 
 class Budget(TimestampMixin, Base):

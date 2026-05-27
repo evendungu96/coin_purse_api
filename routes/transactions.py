@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from common.db.config import get_db
 from helpers.db_utils import active_query, require_owned_active, soft_delete
 from helpers.kinds import resolve_kind_id_or_400
-from models.models import Account, Category, Transaction, TransactionKind
+from models.models import Account, Budget, BudgetItem, Category, Transaction, TransactionKind
 from schemas.transactions import (
     KindName,
     TransactionCreate,
@@ -76,6 +76,12 @@ def create_transaction(
             detail="Original transaction for refund not found",
         )
 
+    if payload.budget_item_id is not None:
+        bi = active_query(db, BudgetItem).filter(BudgetItem.id == payload.budget_item_id).first()
+        if not bi:
+            raise HTTPException(status_code=404, detail="Budget item not found")
+        require_owned_active(db, Budget, bi.budget_id, user_id, detail="Budget item not found")
+
     txn = Transaction(
         user_id=user_id,
         kind_id=kind_id,
@@ -87,6 +93,7 @@ def create_transaction(
         posted_at=payload.posted_at,
         refunded_transaction_id=payload.refunded_transaction_id,
         transfer_group_id=transfer_group_id,
+        budget_item_id=payload.budget_item_id,
     )
     db.add(txn)
     db.commit()
@@ -156,6 +163,11 @@ def update_transaction(
         _require_owned_active_account(db, user_id, data["to_account_id"])
     if "category_id" in data and data["category_id"] is not None:
         _require_owned_active_category(db, user_id, data["category_id"])
+    if "budget_item_id" in data and data["budget_item_id"] is not None:
+        bi = active_query(db, BudgetItem).filter(BudgetItem.id == data["budget_item_id"]).first()
+        if not bi:
+            raise HTTPException(status_code=404, detail="Budget item not found")
+        require_owned_active(db, Budget, bi.budget_id, user_id, detail="Budget item not found")
 
     for k, v in data.items():
         setattr(txn, k, v)
