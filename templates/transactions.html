@@ -100,13 +100,19 @@
         {# Budget Item #}
         <div id="budget-item-row">
           <label class="block text-xs font-medium text-slate-600 mb-1">Budget Item <span class="text-slate-400">(optional)</span></label>
-          <select id="budget_item_id"
-                  class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            <option value="">— none —</option>
-            {% for bi in budget_items %}
-            <option value="{{ bi.id }}">{{ bi.budget.name }} — {{ bi.category.name }}{% if bi.name %} ({{ bi.name }}){% endif %}</option>
-            {% endfor %}
-          </select>
+          <div class="relative" id="bi-combobox">
+            <input id="bi-search" type="text" placeholder="Search budget items…" autocomplete="off"
+                   class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            <input type="hidden" id="budget_item_id" />
+            <ul id="bi-dropdown"
+                class="hidden absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-52 overflow-y-auto text-sm">
+              <li data-value="" class="px-3 py-2 hover:bg-indigo-50 cursor-pointer text-slate-400 italic">— none —</li>
+              {% for bi in budget_items %}
+              <li data-value="{{ bi.id }}"
+                  class="px-3 py-2 hover:bg-indigo-50 cursor-pointer">{{ bi.budget.name }} — {{ bi.category.name }}{% if bi.name %} ({{ bi.name }}){% endif %}</li>
+              {% endfor %}
+            </ul>
+          </div>
         </div>
 
         {# Error / success banners #}
@@ -286,6 +292,8 @@ document.getElementById("txn-form").addEventListener("submit", async e => {
     reloadStats();
     document.getElementById("amount").value = "";
     document.getElementById("description").value = "";
+    document.getElementById("bi-search").value = "";
+    document.getElementById("budget_item_id").value = "";
   } catch (err) {
     showError("Network error. Please try again.");
   }
@@ -358,12 +366,9 @@ function prependTransaction(t) {
   const budgetItemName = t.budget_item_name
     ? `· ${t.budget_item_name}`
     : (() => {
-        const biEl = document.getElementById("budget_item_id");
-        const biVal = biEl?.value;
-        return biVal ? `· ${biEl.selectedOptions[0]?.text || ""}` : "";
-      })();
-
-  const sub = [accountName, toAccountName ? `→ ${toAccountName}` : "", categoryName ? `· ${categoryName}` : "", budgetItemName]
+        const biVal = document.getElementById("budget_item_id")?.value;
+        const biText = document.getElementById("bi-search")?.value.trim();
+        return biVal && biText ? `· ${biText}` : "";
     .filter(Boolean).join(" ");
 
   const li = document.createElement("li");
@@ -381,6 +386,91 @@ function prependTransaction(t) {
   list.prepend(li);
   setTimeout(() => li.classList.remove("bg-indigo-50"), 1500);
 }
+
+// ── Budget item combobox ──────────────────────────────────────
+(function () {
+  const searchEl   = document.getElementById("bi-search");
+  const hiddenEl   = document.getElementById("budget_item_id");
+  const dropdown   = document.getElementById("bi-dropdown");
+  const allItems   = Array.from(dropdown.querySelectorAll("li"));
+
+  function openDropdown() {
+    filterItems(searchEl.value);
+    dropdown.classList.remove("hidden");
+  }
+
+  function closeDropdown() {
+    dropdown.classList.add("hidden");
+  }
+
+  function filterItems(query) {
+    const q = query.trim().toLowerCase();
+    let anyVisible = false;
+    allItems.forEach(li => {
+      const match = !q || li.textContent.trim().toLowerCase().includes(q);
+      li.style.display = match ? "" : "none";
+      if (match) anyVisible = true;
+    });
+  }
+
+  function selectItem(li) {
+    hiddenEl.value  = li.dataset.value;
+    searchEl.value  = li.dataset.value ? li.textContent.trim() : "";
+    closeDropdown();
+  }
+
+  searchEl.addEventListener("focus", openDropdown);
+  searchEl.addEventListener("click", openDropdown);
+
+  searchEl.addEventListener("input", () => {
+    // Clear hidden value while typing (no item chosen yet)
+    hiddenEl.value = "";
+    filterItems(searchEl.value);
+    dropdown.classList.remove("hidden");
+  });
+
+  dropdown.addEventListener("mousedown", e => {
+    const li = e.target.closest("li");
+    if (li) { e.preventDefault(); selectItem(li); }
+  });
+
+  searchEl.addEventListener("keydown", e => {
+    if (e.key === "Escape") { closeDropdown(); searchEl.blur(); return; }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      dropdown.classList.remove("hidden");
+      const visible = allItems.filter(li => li.style.display !== "none");
+      if (!visible.length) return;
+      const focused = dropdown.querySelector("li.bg-indigo-100");
+      let idx = focused ? visible.indexOf(focused) : -1;
+      if (focused) focused.classList.remove("bg-indigo-100");
+      idx = e.key === "ArrowDown" ? Math.min(idx + 1, visible.length - 1)
+                                  : Math.max(idx - 1, 0);
+      visible[idx].classList.add("bg-indigo-100");
+      visible[idx].scrollIntoView({ block: "nearest" });
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const focused = dropdown.querySelector("li.bg-indigo-100");
+      if (focused) selectItem(focused);
+    }
+  });
+
+  searchEl.addEventListener("blur", () => {
+    // Delay so mousedown on dropdown fires first
+    setTimeout(() => {
+      closeDropdown();
+      // If user typed but didn't pick, restore last selected text or clear
+      if (!hiddenEl.value) searchEl.value = "";
+    }, 150);
+  });
+
+  document.addEventListener("click", e => {
+    if (!document.getElementById("bi-combobox").contains(e.target)) {
+      closeDropdown();
+    }
+  });
+})();
 </script>
 
 {% endblock %}
