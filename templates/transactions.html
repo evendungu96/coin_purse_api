@@ -357,7 +357,11 @@ function prependTransaction(t) {
     : "";
   const budgetItemName = t.budget_item_name
     ? `· ${t.budget_item_name}`
-    : (budget_item_id ? `· ${document.getElementById("budget_item_id").selectedOptions[0]?.text || ""}` : "");
+    : (() => {
+        const biEl = document.getElementById("budget_item_id");
+        const biVal = biEl?.value;
+        return biVal ? `· ${biEl.selectedOptions[0]?.text || ""}` : "";
+      })();
 
   const sub = [accountName, toAccountName ? `→ ${toAccountName}` : "", categoryName ? `· ${categoryName}` : "", budgetItemName]
     .filter(Boolean).join(" ");
