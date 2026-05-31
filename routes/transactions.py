@@ -11,7 +11,14 @@ from sqlalchemy.orm import Session
 from common.db.config import get_db
 from helpers.db_utils import active_query, require_owned_active, soft_delete
 from helpers.kinds import resolve_kind_id_or_400
-from models.models import Account, Budget, BudgetItem, Category, Transaction, TransactionKind
+from models.models import (
+    Account,
+    Budget,
+    BudgetItem,
+    Category,
+    Transaction,
+    TransactionKind,
+)
 from schemas.transactions import (
     KindName,
     TransactionCreate,
@@ -77,10 +84,16 @@ def create_transaction(
         )
 
     if payload.budget_item_id is not None:
-        bi = active_query(db, BudgetItem).filter(BudgetItem.id == payload.budget_item_id).first()
+        bi = (
+            active_query(db, BudgetItem)
+            .filter(BudgetItem.id == payload.budget_item_id)
+            .first()
+        )
         if not bi:
             raise HTTPException(status_code=404, detail="Budget item not found")
-        require_owned_active(db, Budget, bi.budget_id, user_id, detail="Budget item not found")
+        require_owned_active(
+            db, Budget, bi.budget_id, user_id, detail="Budget item not found"
+        )
 
     txn = Transaction(
         user_id=user_id,
@@ -151,23 +164,26 @@ def update_transaction(
         db, Transaction, transaction_id, user_id, detail="Transaction not found"
     )
 
-    if txn.kind.name == "transfer":
-        raise HTTPException(
-            status_code=409, detail="Transfer transactions cannot be edited."
-        )
-
     data = payload.model_dump(exclude_unset=True)
 
     # Basic safety: validate new refs are active + owned
+    if "account_id" in data and data["account_id"] is not None:
+        _require_owned_active_account(db, user_id, data["account_id"])
     if "to_account_id" in data and data["to_account_id"] is not None:
         _require_owned_active_account(db, user_id, data["to_account_id"])
     if "category_id" in data and data["category_id"] is not None:
         _require_owned_active_category(db, user_id, data["category_id"])
     if "budget_item_id" in data and data["budget_item_id"] is not None:
-        bi = active_query(db, BudgetItem).filter(BudgetItem.id == data["budget_item_id"]).first()
+        bi = (
+            active_query(db, BudgetItem)
+            .filter(BudgetItem.id == data["budget_item_id"])
+            .first()
+        )
         if not bi:
             raise HTTPException(status_code=404, detail="Budget item not found")
-        require_owned_active(db, Budget, bi.budget_id, user_id, detail="Budget item not found")
+        require_owned_active(
+            db, Budget, bi.budget_id, user_id, detail="Budget item not found"
+        )
 
     for k, v in data.items():
         setattr(txn, k, v)

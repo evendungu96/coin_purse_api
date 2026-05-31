@@ -50,19 +50,27 @@ def monthly_dashboard(
 
     totals = base.with_entities(
         func.coalesce(
-            func.sum(case((TransactionKind.name == "income", Transaction.amount), else_=0)),
+            func.sum(
+                case((TransactionKind.name == "income", Transaction.amount), else_=0)
+            ),
             0,
         ).label("income"),
         func.coalesce(
-            func.sum(case((TransactionKind.name == "expense", Transaction.amount), else_=0)),
+            func.sum(
+                case((TransactionKind.name == "expense", Transaction.amount), else_=0)
+            ),
             0,
         ).label("expense"),
         func.coalesce(
-            func.sum(case((TransactionKind.name == "refund", Transaction.amount), else_=0)),
+            func.sum(
+                case((TransactionKind.name == "refund", Transaction.amount), else_=0)
+            ),
             0,
         ).label("refund"),
         func.coalesce(
-            func.sum(case((TransactionKind.name == "transfer", Transaction.amount), else_=0)),
+            func.sum(
+                case((TransactionKind.name == "transfer", Transaction.amount), else_=0)
+            ),
             0,
         ).label("transfer"),
     ).first()
@@ -111,7 +119,9 @@ def monthly_dashboard(
     )
 
     in_transfer_rows = (
-        base.filter(TransactionKind.name == "transfer", Transaction.to_account_id.isnot(None))
+        base.filter(
+            TransactionKind.name == "transfer", Transaction.to_account_id.isnot(None)
+        )
         .join(Account, Transaction.to_account_id == Account.id)
         .filter(Account.is_active.is_(True))
         .with_entities(
@@ -140,7 +150,9 @@ def monthly_dashboard(
             }
         acct_map[key]["net_change"] += Decimal(str(r.incoming_transfer))
 
-    account_movements = sorted(acct_map.values(), key=lambda x: x["net_change"], reverse=True)
+    account_movements = sorted(
+        acct_map.values(), key=lambda x: x["net_change"], reverse=True
+    )
 
     return {
         "period": {"year": year, "month": month, "start": start, "end": end},
@@ -172,7 +184,9 @@ def budget_dashboard(
     db: Annotated[Session, Depends(get_db)],
 ):
     # Ensure budget exists, active, and owned
-    budget = require_owned_active(db, Budget, budget_id, user_id, detail="Budget not found")
+    budget = require_owned_active(
+        db, Budget, budget_id, user_id, detail="Budget not found"
+    )
 
     month_start, month_end = month_bounds(year, month)
 
@@ -203,10 +217,16 @@ def budget_dashboard(
         }
 
     # Get expense kind_id (lookup table)
-    expense_kind = active_query(db, TransactionKind).filter(TransactionKind.name == "expense").first()
+    expense_kind = (
+        active_query(db, TransactionKind)
+        .filter(TransactionKind.name == "expense")
+        .first()
+    )
     if not expense_kind:
         # should never happen if seeded
-        raise HTTPException(status_code=500, detail="Missing seeded transaction kind: expense")
+        raise HTTPException(
+            status_code=500, detail="Missing seeded transaction kind: expense"
+        )
 
     # Active budget items + their categories
     items = (
@@ -270,7 +290,9 @@ def budget_dashboard(
         limit_amt = Decimal(str(r.limit_amount))
         spent_amt = spend_map.get(r.category_id, Decimal("0.00"))
         remaining = limit_amt - spent_amt
-        percent_used = (spent_amt / limit_amt * Decimal(100)) if limit_amt > 0 else Decimal("0.00")
+        percent_used = (
+            (spent_amt / limit_amt * Decimal(100)) if limit_amt > 0 else Decimal("0.00")
+        )
 
         out_items.append(
             {
@@ -288,7 +310,11 @@ def budget_dashboard(
         total_spent += spent_amt
 
     total_remaining = total_limit - total_spent
-    total_percent_used = (total_spent / total_limit * Decimal(100)) if total_limit > 0 else Decimal("0.00")
+    total_percent_used = (
+        (total_spent / total_limit * Decimal(100))
+        if total_limit > 0
+        else Decimal("0.00")
+    )
 
     # Order by most overspent / most used
     out_items.sort(key=lambda x: (x["percent_used"], x["spent"]), reverse=True)
@@ -322,12 +348,32 @@ def _account_balances(db: Session, user_id: UUID) -> list[dict]:
     accounts = active_query(db, Account).filter(Account.user_id == user_id).all()
 
     # Income/refund/incoming-transfer are credits; expense/outgoing-transfer are debits.
-    income_kind = active_query(db, TransactionKind).filter(TransactionKind.name == "income").first()
-    expense_kind = active_query(db, TransactionKind).filter(TransactionKind.name == "expense").first()
-    refund_kind = active_query(db, TransactionKind).filter(TransactionKind.name == "refund").first()
-    transfer_kind = active_query(db, TransactionKind).filter(TransactionKind.name == "transfer").first()
+    income_kind = (
+        active_query(db, TransactionKind)
+        .filter(TransactionKind.name == "income")
+        .first()
+    )
+    expense_kind = (
+        active_query(db, TransactionKind)
+        .filter(TransactionKind.name == "expense")
+        .first()
+    )
+    refund_kind = (
+        active_query(db, TransactionKind)
+        .filter(TransactionKind.name == "refund")
+        .first()
+    )
+    transfer_kind = (
+        active_query(db, TransactionKind)
+        .filter(TransactionKind.name == "transfer")
+        .first()
+    )
 
-    kind_ids = {k.name: k.id for k in [income_kind, expense_kind, refund_kind, transfer_kind] if k}
+    kind_ids = {
+        k.name: k.id
+        for k in [income_kind, expense_kind, refund_kind, transfer_kind]
+        if k
+    }
 
     # Credits per account (income + refund on account_id, incoming transfers on to_account_id)
     credit_rows = (
@@ -336,15 +382,24 @@ def _account_balances(db: Session, user_id: UUID) -> list[dict]:
             Transaction.user_id == user_id,
             Transaction.kind_id.in_([kind_ids.get("income"), kind_ids.get("refund")]),
         )
-        .with_entities(Transaction.account_id, func.coalesce(func.sum(Transaction.amount), 0).label("total"))
+        .with_entities(
+            Transaction.account_id,
+            func.coalesce(func.sum(Transaction.amount), 0).label("total"),
+        )
         .group_by(Transaction.account_id)
         .all()
     )
     incoming_transfer_rows = (
         active_query(db, Transaction)
-        .filter(Transaction.user_id == user_id, Transaction.kind_id == kind_ids.get("transfer"))
+        .filter(
+            Transaction.user_id == user_id,
+            Transaction.kind_id == kind_ids.get("transfer"),
+        )
         .filter(Transaction.to_account_id.isnot(None))
-        .with_entities(Transaction.to_account_id, func.coalesce(func.sum(Transaction.amount), 0).label("total"))
+        .with_entities(
+            Transaction.to_account_id,
+            func.coalesce(func.sum(Transaction.amount), 0).label("total"),
+        )
         .group_by(Transaction.to_account_id)
         .all()
     )
@@ -352,25 +407,40 @@ def _account_balances(db: Session, user_id: UUID) -> list[dict]:
         active_query(db, Transaction)
         .filter(
             Transaction.user_id == user_id,
-            Transaction.kind_id.in_([kind_ids.get("expense"), kind_ids.get("transfer")]),
+            Transaction.kind_id.in_(
+                [kind_ids.get("expense"), kind_ids.get("transfer")]
+            ),
         )
-        .with_entities(Transaction.account_id, func.coalesce(func.sum(Transaction.amount), 0).label("total"))
+        .with_entities(
+            Transaction.account_id,
+            func.coalesce(func.sum(Transaction.amount), 0).label("total"),
+        )
         .group_by(Transaction.account_id)
         .all()
     )
 
     credit_map: dict[str, Decimal] = {}
     for r in credit_rows:
-        credit_map[str(r.account_id)] = credit_map.get(str(r.account_id), Decimal(0)) + Decimal(str(r.total))
+        credit_map[str(r.account_id)] = credit_map.get(
+            str(r.account_id), Decimal(0)
+        ) + Decimal(str(r.total))
     for r in incoming_transfer_rows:
-        credit_map[str(r.to_account_id)] = credit_map.get(str(r.to_account_id), Decimal(0)) + Decimal(str(r.total))
+        credit_map[str(r.to_account_id)] = credit_map.get(
+            str(r.to_account_id), Decimal(0)
+        ) + Decimal(str(r.total))
 
-    debits: dict[str, Decimal] = {str(r.account_id): Decimal(str(r.total)) for r in debit_rows}
+    debits: dict[str, Decimal] = {
+        str(r.account_id): Decimal(str(r.total)) for r in debit_rows
+    }
 
     result = []
     for acct in accounts:
         key = str(acct.id)
-        balance = Decimal(str(acct.opening_balance)) + credit_map.get(key, Decimal(0)) - debits.get(key, Decimal(0))
+        balance = (
+            Decimal(str(acct.opening_balance))
+            + credit_map.get(key, Decimal(0))
+            - debits.get(key, Decimal(0))
+        )
         result.append(
             {
                 "account_id": acct.id,
@@ -387,14 +457,22 @@ def _current_budget_summary(db: Session, user_id: UUID, today: date) -> dict | N
     """Find the budget whose period contains today; return item-level spend progress."""
     budget = (
         active_query(db, Budget)
-        .filter(Budget.user_id == user_id, Budget.period_start <= today, Budget.period_end >= today)
+        .filter(
+            Budget.user_id == user_id,
+            Budget.period_start <= today,
+            Budget.period_end >= today,
+        )
         .order_by(Budget.period_start.desc())
         .first()
     )
     if not budget:
         return None
 
-    expense_kind = active_query(db, TransactionKind).filter(TransactionKind.name == "expense").first()
+    expense_kind = (
+        active_query(db, TransactionKind)
+        .filter(TransactionKind.name == "expense")
+        .first()
+    )
     if not expense_kind:
         return None
 
@@ -436,7 +514,11 @@ def _current_budget_summary(db: Session, user_id: UUID, today: date) -> dict | N
     for r in items:
         cid = r.category_id
         if cid not in grouped:
-            grouped[cid] = {"category_id": cid, "category_name": r.category_name, "limit": Decimal(0)}
+            grouped[cid] = {
+                "category_id": cid,
+                "category_name": r.category_name,
+                "limit": Decimal(0),
+            }
         grouped[cid]["limit"] += Decimal(str(r.limit_amount))
 
     out_items = []
@@ -463,7 +545,9 @@ def _current_budget_summary(db: Session, user_id: UUID, today: date) -> dict | N
 
     out_items.sort(key=lambda x: x["percent_used"], reverse=True)
     total_remaining = total_limit - total_spent
-    total_percent_used = (total_spent / total_limit * 100) if total_limit > 0 else Decimal(0)
+    total_percent_used = (
+        (total_spent / total_limit * 100) if total_limit > 0 else Decimal(0)
+    )
 
     return {
         "budget_id": budget.id,
@@ -487,20 +571,33 @@ def _monthly_totals(db: Session, user_id: UUID, today: date) -> dict:
 
     base = (
         active_query(db, Transaction)
-        .filter(Transaction.user_id == user_id, Transaction.posted_at >= start, Transaction.posted_at <= end)
+        .filter(
+            Transaction.user_id == user_id,
+            Transaction.posted_at >= start,
+            Transaction.posted_at <= end,
+        )
         .join(TransactionKind, Transaction.kind_id == TransactionKind.id)
         .filter(TransactionKind.is_active.is_(True))
     )
     row = base.with_entities(
-        func.coalesce(func.sum(case((TransactionKind.name == "income", Transaction.amount), else_=0)), 0).label(
-            "income"
-        ),
-        func.coalesce(func.sum(case((TransactionKind.name == "expense", Transaction.amount), else_=0)), 0).label(
-            "expense"
-        ),
-        func.coalesce(func.sum(case((TransactionKind.name == "refund", Transaction.amount), else_=0)), 0).label(
-            "refund"
-        ),
+        func.coalesce(
+            func.sum(
+                case((TransactionKind.name == "income", Transaction.amount), else_=0)
+            ),
+            0,
+        ).label("income"),
+        func.coalesce(
+            func.sum(
+                case((TransactionKind.name == "expense", Transaction.amount), else_=0)
+            ),
+            0,
+        ).label("expense"),
+        func.coalesce(
+            func.sum(
+                case((TransactionKind.name == "refund", Transaction.amount), else_=0)
+            ),
+            0,
+        ).label("refund"),
     ).first()
 
     income = Decimal(str(row.income))

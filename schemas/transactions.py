@@ -43,10 +43,14 @@ class TransactionCreate(APIModel):
         # non-transfer: destination account should generally be null
         # (keep it strict; relax if you want)
         elif self.to_account_id is not None:
-            raise ValueError("to_account_id must be null for non-transfer transactions.")
+            raise ValueError(
+                "to_account_id must be null for non-transfer transactions."
+            )
         if self.kind == "refund" and self.refunded_transaction_id is None:
             # You can relax this if you want refunds without linkage
-            raise ValueError("refunded_transaction_id is required for refund transactions.")
+            raise ValueError(
+                "refunded_transaction_id is required for refund transactions."
+            )
         return self
 
 
@@ -57,7 +61,7 @@ class TransactionUpdate(APIModel):
     posted_at: date | None = None
     amount: Decimal | None = Field(default=None, ge=0)
 
-    # For transfers you may allow editing to_account_id
+    account_id: uuid.UUID | None = None
     to_account_id: uuid.UUID | None = None
 
     budget_item_id: uuid.UUID | None = None

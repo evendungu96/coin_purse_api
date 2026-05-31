@@ -334,7 +334,7 @@ def test_update_transaction_wrong_user_returns_404(
     assert res.status_code == 404
 
 
-def test_update_transfer_returns_409(
+def test_update_transfer_description_and_amount(
     client: TestClient, user_id: str, account: dict, second_account: dict
 ):
     transfer = client.post(
@@ -343,9 +343,30 @@ def test_update_transfer_returns_409(
     ).json()
     res = client.patch(
         f"/users/{user_id}/transactions/{transfer['id']}",
-        json={"description": "changed"},
+        json={"description": "changed", "amount": "50.00"},
     )
-    assert res.status_code == 409
+    assert res.status_code == 200
+    data = res.json()
+    assert data["description"] == "changed"
+    assert float(data["amount"]) == 50.00
+
+
+def test_update_transfer_accounts(
+    client: TestClient, user_id: str, account: dict, second_account: dict
+):
+    transfer = client.post(
+        f"/users/{user_id}/transactions",
+        json=_transfer(account["id"], second_account["id"]),
+    ).json()
+    # Swap from/to accounts
+    res = client.patch(
+        f"/users/{user_id}/transactions/{transfer['id']}",
+        json={"account_id": second_account["id"], "to_account_id": account["id"]},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["account_id"] == second_account["id"]
+    assert data["to_account_id"] == account["id"]
 
 
 def test_update_non_transfer_still_works(

@@ -170,6 +170,7 @@
               data-amount="{{ t.amount }}"
               data-posted-at="{{ t.posted_at }}"
               data-account-id="{{ t.account_id }}"
+              data-to-account-id="{{ t.to_account_id or '' }}"
               data-category-id="{{ t.category_id or '' }}"
               data-description="{{ t.description | e if t.description else '' }}"
               data-budget-item-id="{{ t.budget_item_id or '' }}">
@@ -198,11 +199,9 @@
               {{ t.amount | currency }}
             </div>
             <div class="shrink-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              {% if t.kind.name != 'transfer' %}
               <button type="button" class="edit-btn p-1.5 rounded hover:bg-indigo-50 text-slate-300 hover:text-indigo-500 transition-colors" title="Edit">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
               </button>
-              {% endif %}
               <button type="button" class="delete-btn p-1.5 rounded hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-colors" title="Delete">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
               </button>
@@ -222,8 +221,9 @@
 <script>
 const USER_ID = "{{ user_id }}";
 // Capture option HTML from existing selects for use in inline edit forms
-const CATEGORY_OPTIONS   = document.getElementById("category_id").innerHTML;
+const CATEGORY_OPTIONS    = document.getElementById("category_id").innerHTML;
 const BUDGET_ITEM_OPTIONS = document.getElementById("budget_item_id").innerHTML;
+const ACCOUNT_OPTIONS     = document.getElementById("account_id").innerHTML;
 
 // ── Kind radio button highlight ───────────────────────────────
 function updateKindButtons() {
@@ -391,7 +391,6 @@ function buildRowInnerHTML(t) {
     t.category_name   ? `· ${escHtml(t.category_name)}` : "",
     t.budget_item_name ? `· <span class="text-indigo-400">${escHtml(t.budget_item_name)}</span>` : "",
   ].filter(Boolean).join(" ");
-  const isTransfer = t.kind === "transfer";
   return `
     <div class="shrink-0 text-xs text-slate-400 w-16 text-right">${fmtDate(t.posted_at)}</div>
     <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${KIND_BADGE[t.kind] || ''}">${escHtml(t.kind)}</span>
@@ -401,7 +400,7 @@ function buildRowInnerHTML(t) {
     </div>
     <div class="shrink-0 text-sm font-semibold ${KIND_AMOUNT[t.kind] || ''}">${fmtCurrency(t.amount)}</div>
     <div class="shrink-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-      ${!isTransfer ? `<button type="button" class="edit-btn p-1.5 rounded hover:bg-indigo-50 text-slate-300 hover:text-indigo-500 transition-colors" title="Edit">${PENCIL_SVG}</button>` : ""}
+      <button type="button" class="edit-btn p-1.5 rounded hover:bg-indigo-50 text-slate-300 hover:text-indigo-500 transition-colors" title="Edit">${PENCIL_SVG}</button>
       <button type="button" class="delete-btn p-1.5 rounded hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-colors" title="Delete">${TRASH_SVG}</button>
     </div>`;
 }
@@ -419,6 +418,7 @@ function prependTransaction(t) {
   li.dataset.amount       = t.amount;
   li.dataset.postedAt     = t.posted_at;
   li.dataset.accountId    = t.account_id;
+  li.dataset.toAccountId  = t.to_account_id  || "";
   li.dataset.categoryId   = t.category_id   || "";
   li.dataset.description  = t.description   || "";
   li.dataset.budgetItemId = t.budget_item_id || "";
@@ -448,11 +448,19 @@ function openRowEdit(li) {
           <label class="block text-xs text-slate-500 mb-0.5">Date</label>
           <input name="e-date" type="date" value="${escHtml(d.postedAt)}" required class="${inputCls}" />
         </div>
-        ${!isTransfer ? `
+        ${isTransfer ? `
+        <div>
+          <label class="block text-xs text-slate-500 mb-0.5">From Account</label>
+          <select name="e-account" class="${inputCls}">${ACCOUNT_OPTIONS}</select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-0.5">To Account</label>
+          <select name="e-to-account" class="${inputCls}">${ACCOUNT_OPTIONS}</select>
+        </div>` : `
         <div>
           <label class="block text-xs text-slate-500 mb-0.5">Category</label>
           <select name="e-category" class="${inputCls}">${CATEGORY_OPTIONS}</select>
-        </div>` : ""}
+        </div>`}
         <div>
           <label class="block text-xs text-slate-500 mb-0.5">Description</label>
           <input name="e-description" type="text" value="${escHtml(d.description)}" class="${inputCls} w-36" />
@@ -469,7 +477,10 @@ function openRowEdit(li) {
       </div>
     </form>`;
 
-  if (!isTransfer) {
+  if (isTransfer) {
+    li.querySelector('[name="e-account"]').value    = d.accountId;
+    li.querySelector('[name="e-to-account"]').value = d.toAccountId;
+  } else {
     li.querySelector('[name="e-category"]').value    = d.categoryId;
     li.querySelector('[name="e-budget-item"]').value = d.budgetItemId;
   }
@@ -491,7 +502,10 @@ async function saveRowEdit(li) {
     posted_at:   form.querySelector('[name="e-date"]').value,
     description: form.querySelector('[name="e-description"]').value.trim() || null,
   };
-  if (!isTransfer) {
+  if (isTransfer) {
+    body.account_id    = form.querySelector('[name="e-account"]').value    || null;
+    body.to_account_id = form.querySelector('[name="e-to-account"]').value || null;
+  } else {
     body.category_id    = form.querySelector('[name="e-category"]').value    || null;
     body.budget_item_id = form.querySelector('[name="e-budget-item"]').value || null;
   }
@@ -510,6 +524,8 @@ async function saveRowEdit(li) {
     const txn = await res.json();
     li.dataset.amount       = txn.amount;
     li.dataset.postedAt     = txn.posted_at;
+    li.dataset.accountId    = txn.account_id;
+    li.dataset.toAccountId  = txn.to_account_id  || "";
     li.dataset.categoryId   = txn.category_id   || "";
     li.dataset.description  = txn.description   || "";
     li.dataset.budgetItemId = txn.budget_item_id || "";
