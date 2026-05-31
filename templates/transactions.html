@@ -254,9 +254,24 @@ document.querySelectorAll('input[name="kind"]').forEach(r => {
     document.getElementById("category-row").classList.toggle("hidden", kind === "transfer");
     document.getElementById("budget-item-row").classList.toggle("hidden", kind === "transfer");
     updateKindButtons();
+    updateTransferDescription();
   });
 });
 updateKindButtons();
+
+function updateTransferDescription() {
+  const kind = document.querySelector('input[name="kind"]:checked')?.value;
+  const descEl = document.getElementById("description");
+  if (kind !== "transfer") return;
+  const fromText = document.getElementById("account_id").selectedOptions[0]?.text || "";
+  const toText   = document.getElementById("to_account_id").selectedOptions[0]?.text || "";
+  if (fromText && toText && fromText !== "— select account —" && toText !== "— select account —") {
+    descEl.value = `Transfer from ${fromText} to ${toText}`;
+  }
+}
+
+document.getElementById("account_id").addEventListener("change", updateTransferDescription);
+document.getElementById("to_account_id").addEventListener("change", updateTransferDescription);
 
 // ── Set today as default date ─────────────────────────────────
 document.getElementById("posted_at").value = new Date().toISOString().slice(0, 10);
