@@ -431,19 +431,26 @@ def _current_budget_summary(db: Session, user_id: UUID, today: date) -> dict | N
     )
     spend_map = {r.category_id: Decimal(str(r.spent)) for r in spend_rows}
 
+    # Group budget items by category (multiple items per category → sum limits)
+    grouped: dict = {}
+    for r in items:
+        cid = r.category_id
+        if cid not in grouped:
+            grouped[cid] = {"category_id": cid, "category_name": r.category_name, "limit": Decimal(0)}
+        grouped[cid]["limit"] += Decimal(str(r.limit_amount))
+
     out_items = []
     total_limit = Decimal(0)
     total_spent = Decimal(0)
-    for r in items:
-        limit_amt = Decimal(str(r.limit_amount))
-        spent_amt = spend_map.get(r.category_id, Decimal(0))
+    for g in grouped.values():
+        limit_amt = g["limit"]
+        spent_amt = spend_map.get(g["category_id"], Decimal(0))
         remaining = limit_amt - spent_amt
         percent_used = (spent_amt / limit_amt * 100) if limit_amt > 0 else Decimal(0)
         out_items.append(
             {
-                "budget_item_id": r.item_id,
-                "category_id": r.category_id,
-                "category_name": r.category_name,
+                "category_id": g["category_id"],
+                "category_name": g["category_name"],
                 "limit": limit_amt,
                 "spent": spent_amt,
                 "remaining": remaining,
