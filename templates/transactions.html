@@ -164,8 +164,15 @@
         {% if transactions %}
         <ul class="divide-y divide-slate-100">
           {% for t in transactions %}
-          <li class="txn-row px-5 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors"
-              data-id="{{ t.id }}">
+          <li class="txn-row group px-5 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors"
+              data-id="{{ t.id }}"
+              data-kind="{{ t.kind.name }}"
+              data-amount="{{ t.amount }}"
+              data-posted-at="{{ t.posted_at }}"
+              data-account-id="{{ t.account_id }}"
+              data-category-id="{{ t.category_id or '' }}"
+              data-description="{{ t.description | e if t.description else '' }}"
+              data-budget-item-id="{{ t.budget_item_id or '' }}">
             <div class="shrink-0 text-xs text-slate-400 w-16 text-right">
               {{ t.posted_at | date_fmt }}
             </div>
@@ -190,6 +197,16 @@
                         {% else %}text-blue-600{% endif %}">
               {{ t.amount | currency }}
             </div>
+            <div class="shrink-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {% if t.kind.name != 'transfer' %}
+              <button type="button" class="edit-btn p-1.5 rounded hover:bg-indigo-50 text-slate-300 hover:text-indigo-500 transition-colors" title="Edit">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
+              </button>
+              {% endif %}
+              <button type="button" class="delete-btn p-1.5 rounded hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-colors" title="Delete">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+              </button>
+            </div>
           </li>
           {% endfor %}
         </ul>
@@ -204,6 +221,9 @@
 
 <script>
 const USER_ID = "{{ user_id }}";
+// Capture option HTML from existing selects for use in inline edit forms
+const CATEGORY_OPTIONS   = document.getElementById("category_id").innerHTML;
+const BUDGET_ITEM_OPTIONS = document.getElementById("budget_item_id").innerHTML;
 
 // ── Kind radio button highlight ───────────────────────────────
 function updateKindButtons() {
@@ -310,6 +330,12 @@ const KIND_AMOUNT = {
   transfer: "text-purple-600",
   refund:   "text-blue-600",
 };
+const PENCIL_SVG = `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>`;
+const TRASH_SVG  = `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>`;
+
+function escHtml(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
 function fmtDate(iso) {
   const d = new Date(iso + "T00:00:00");
@@ -343,46 +369,175 @@ async function reloadStats() {
   }).join("");
 }
 
+function buildRowInnerHTML(t) {
+  const sub = [
+    escHtml(t.account_name || ""),
+    t.to_account_name ? `→ ${escHtml(t.to_account_name)}` : "",
+    t.category_name   ? `· ${escHtml(t.category_name)}` : "",
+    t.budget_item_name ? `· <span class="text-indigo-400">${escHtml(t.budget_item_name)}</span>` : "",
+  ].filter(Boolean).join(" ");
+  const isTransfer = t.kind === "transfer";
+  return `
+    <div class="shrink-0 text-xs text-slate-400 w-16 text-right">${fmtDate(t.posted_at)}</div>
+    <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${KIND_BADGE[t.kind] || ''}">${escHtml(t.kind)}</span>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-medium text-slate-800 truncate">${escHtml(t.description || "—")}</p>
+      <p class="text-xs text-slate-400 truncate">${sub}</p>
+    </div>
+    <div class="shrink-0 text-sm font-semibold ${KIND_AMOUNT[t.kind] || ''}">${fmtCurrency(t.amount)}</div>
+    <div class="shrink-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      ${!isTransfer ? `<button type="button" class="edit-btn p-1.5 rounded hover:bg-indigo-50 text-slate-300 hover:text-indigo-500 transition-colors" title="Edit">${PENCIL_SVG}</button>` : ""}
+      <button type="button" class="delete-btn p-1.5 rounded hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-colors" title="Delete">${TRASH_SVG}</button>
+    </div>`;
+}
+
 function prependTransaction(t) {
   const list = document.querySelector("#txn-list ul") || (() => {
     document.getElementById("txn-list").innerHTML = "<ul class='divide-y divide-slate-100'></ul>";
     return document.querySelector("#txn-list ul");
   })();
 
-  const accountName = document.getElementById("account_id").selectedOptions[0]?.text || "";
-  const toAccountName = t.to_account_id
-    ? (document.getElementById("to_account_id").selectedOptions[0]?.text || "")
-    : "";
-  const categoryName = t.category_id
-    ? (document.getElementById("category_id").selectedOptions[0]?.text || "")
-    : "";
-  const budgetItemName = t.budget_item_name
-    ? `· ${t.budget_item_name}`
-    : (() => {
-        const biEl = document.getElementById("budget_item_id");
-        const biVal = biEl?.value;
-        return biVal ? `· ${biEl.selectedOptions[0]?.text || ""}` : "";
-      })();
-
-  const sub = [accountName, toAccountName ? `→ ${toAccountName}` : "", categoryName ? `· ${categoryName}` : "", budgetItemName]
-    .filter(Boolean).join(" ");
-
   const li = document.createElement("li");
-  li.className = "txn-row px-5 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors bg-indigo-50";
-  li.dataset.id = t.id;
-  li.innerHTML = `
-    <div class="shrink-0 text-xs text-slate-400 w-16 text-right">${fmtDate(t.posted_at)}</div>
-    <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${KIND_BADGE[t.kind] || ''}">${t.kind}</span>
-    <div class="flex-1 min-w-0">
-      <p class="text-sm font-medium text-slate-800 truncate">${t.description || "—"}</p>
-      <p class="text-xs text-slate-400 truncate">${sub}</p>
-    </div>
-    <div class="shrink-0 text-sm font-semibold ${KIND_AMOUNT[t.kind] || ''}">${fmtCurrency(t.amount)}</div>
-  `;
+  li.className = "txn-row group px-5 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors bg-indigo-50";
+  li.dataset.id           = t.id;
+  li.dataset.kind         = t.kind;
+  li.dataset.amount       = t.amount;
+  li.dataset.postedAt     = t.posted_at;
+  li.dataset.accountId    = t.account_id;
+  li.dataset.categoryId   = t.category_id   || "";
+  li.dataset.description  = t.description   || "";
+  li.dataset.budgetItemId = t.budget_item_id || "";
+  li.innerHTML = buildRowInnerHTML(t);
   list.prepend(li);
   setTimeout(() => li.classList.remove("bg-indigo-50"), 1500);
 }
+// ── Inline row editing ────────────────────────────────────────
+function openRowEdit(li) {
+  li._savedHTML = li.innerHTML;
+  const d = li.dataset;
+  const isTransfer = d.kind === "transfer";
+  const inputCls = "px-2 py-1 rounded border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
+  li.innerHTML = `
+    <form class="edit-form flex-1 py-1">
+      <div class="flex flex-wrap gap-x-3 gap-y-2 items-end">
+        <div>
+          <label class="block text-xs text-slate-500 mb-0.5">Amount</label>
+          <div class="relative">
+            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
+            <input name="e-amount" type="number" min="0" step="0.01" value="${escHtml(d.amount)}" required
+                   class="pl-5 pr-2 py-1 w-24 rounded border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-0.5">Date</label>
+          <input name="e-date" type="date" value="${escHtml(d.postedAt)}" required class="${inputCls}" />
+        </div>
+        ${!isTransfer ? `
+        <div>
+          <label class="block text-xs text-slate-500 mb-0.5">Category</label>
+          <select name="e-category" class="${inputCls}">${CATEGORY_OPTIONS}</select>
+        </div>` : ""}
+        <div>
+          <label class="block text-xs text-slate-500 mb-0.5">Description</label>
+          <input name="e-description" type="text" value="${escHtml(d.description)}" class="${inputCls} w-36" />
+        </div>
+        ${!isTransfer ? `
+        <div>
+          <label class="block text-xs text-slate-500 mb-0.5">Budget Item</label>
+          <select name="e-budget-item" class="${inputCls}">${BUDGET_ITEM_OPTIONS}</select>
+        </div>` : ""}
+      </div>
+      <div class="flex gap-2 mt-2">
+        <button type="submit" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors">Save</button>
+        <button type="button" class="cancel-edit-btn px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-lg transition-colors">Cancel</button>
+      </div>
+    </form>`;
+
+  if (!isTransfer) {
+    li.querySelector('[name="e-category"]').value    = d.categoryId;
+    li.querySelector('[name="e-budget-item"]').value = d.budgetItemId;
+  }
+  li.querySelector('[name="e-amount"]').focus();
+}
+
+function closeRowEdit(li) {
+  li.innerHTML = li._savedHTML;
+  delete li._savedHTML;
+}
+
+async function saveRowEdit(li) {
+  const form = li.querySelector(".edit-form");
+  const d    = li.dataset;
+  const isTransfer = d.kind === "transfer";
+
+  const body = {
+    amount:      parseFloat(form.querySelector('[name="e-amount"]').value),
+    posted_at:   form.querySelector('[name="e-date"]').value,
+    description: form.querySelector('[name="e-description"]').value.trim() || null,
+  };
+  if (!isTransfer) {
+    body.category_id    = form.querySelector('[name="e-category"]').value    || null;
+    body.budget_item_id = form.querySelector('[name="e-budget-item"]').value || null;
+  }
+
+  try {
+    const res = await fetch(`/users/${USER_ID}/transactions/${d.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.message || err.detail || "Failed to save changes.");
+      return;
+    }
+    const txn = await res.json();
+    li.dataset.amount       = txn.amount;
+    li.dataset.postedAt     = txn.posted_at;
+    li.dataset.categoryId   = txn.category_id   || "";
+    li.dataset.description  = txn.description   || "";
+    li.dataset.budgetItemId = txn.budget_item_id || "";
+    li.innerHTML = buildRowInnerHTML(txn);
+    delete li._savedHTML;
+    li.classList.add("bg-indigo-50");
+    setTimeout(() => li.classList.remove("bg-indigo-50"), 1200);
+    reloadStats();
+  } catch {
+    alert("Network error. Please try again.");
+  }
+}
+
+async function deleteTransaction(li) {
+  if (!confirm("Delete this transaction?")) return;
+  try {
+    const res = await fetch(`/users/${USER_ID}/transactions/${li.dataset.id}`, { method: "DELETE" });
+    if (res.ok || res.status === 204) {
+      li.remove();
+      reloadStats();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.message || "Failed to delete transaction.");
+    }
+  } catch {
+    alert("Network error. Please try again.");
+  }
+}
+
+// ── Event delegation for list actions ────────────────────────
+document.getElementById("txn-list").addEventListener("click", e => {
+  const li = e.target.closest(".txn-row");
+  if (!li) return;
+  if (e.target.closest(".edit-btn"))        { openRowEdit(li);      return; }
+  if (e.target.closest(".delete-btn"))      { deleteTransaction(li); return; }
+  if (e.target.closest(".cancel-edit-btn")) { closeRowEdit(li);      return; }
+});
+document.getElementById("txn-list").addEventListener("submit", async e => {
+  const li = e.target.closest(".txn-row");
+  if (!li) return;
+  e.preventDefault();
+  await saveRowEdit(li);
+});
 </script>
 
 {% endblock %}
