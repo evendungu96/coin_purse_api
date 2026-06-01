@@ -166,6 +166,11 @@ def update_transaction(
 
     data = payload.model_dump(exclude_unset=True)
 
+    # Resolve kind name → kind_id
+    if "kind" in data:
+        kind_name = data.pop("kind")
+        txn.kind_id = resolve_kind_id_or_400(db, kind_name)
+
     # Basic safety: validate new refs are active + owned
     if "account_id" in data and data["account_id"] is not None:
         _require_owned_active_account(db, user_id, data["account_id"])

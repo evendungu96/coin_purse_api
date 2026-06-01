@@ -55,7 +55,7 @@ class TransactionCreate(APIModel):
 
 
 class TransactionUpdate(APIModel):
-    # Typically you allow editing description/category/posted_at/amount etc.
+    kind: KindName | None = None
     category_id: uuid.UUID | None = None
     description: str | None = None
     posted_at: date | None = None

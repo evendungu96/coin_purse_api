@@ -448,28 +448,35 @@ function openRowEdit(li) {
           <label class="block text-xs text-slate-500 mb-0.5">Date</label>
           <input name="e-date" type="date" value="${escHtml(d.postedAt)}" required class="${inputCls}" />
         </div>
-        ${isTransfer ? `
         <div>
-          <label class="block text-xs text-slate-500 mb-0.5">From Account</label>
-          <select name="e-account" class="${inputCls}">${ACCOUNT_OPTIONS}</select>
+          <label class="block text-xs text-slate-500 mb-0.5">Kind</label>
+          <select name="e-kind" class="${inputCls}">
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+            <option value="transfer">Transfer</option>
+            <option value="refund">Refund</option>
+          </select>
         </div>
         <div>
+          <label class="block text-xs text-slate-500 mb-0.5 e-account-label">${isTransfer ? 'From Account' : 'Account'}</label>
+          <select name="e-account" class="${inputCls}">${ACCOUNT_OPTIONS}</select>
+        </div>
+        <div class="e-to-account-field${isTransfer ? '' : ' hidden'}">
           <label class="block text-xs text-slate-500 mb-0.5">To Account</label>
           <select name="e-to-account" class="${inputCls}">${ACCOUNT_OPTIONS}</select>
-        </div>` : `
-        <div>
+        </div>
+        <div class="e-category-field${isTransfer ? ' hidden' : ''}">
           <label class="block text-xs text-slate-500 mb-0.5">Category</label>
           <select name="e-category" class="${inputCls}">${CATEGORY_OPTIONS}</select>
-        </div>`}
+        </div>
         <div>
           <label class="block text-xs text-slate-500 mb-0.5">Description</label>
           <input name="e-description" type="text" value="${escHtml(d.description)}" class="${inputCls} w-36" />
         </div>
-        ${!isTransfer ? `
-        <div>
+        <div class="e-budget-item-field${isTransfer ? ' hidden' : ''}">
           <label class="block text-xs text-slate-500 mb-0.5">Budget Item</label>
           <select name="e-budget-item" class="${inputCls}">${BUDGET_ITEM_OPTIONS}</select>
-        </div>` : ""}
+        </div>
       </div>
       <div class="flex gap-2 mt-2">
         <button type="submit" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors">Save</button>
@@ -477,13 +484,20 @@ function openRowEdit(li) {
       </div>
     </form>`;
 
-  if (isTransfer) {
-    li.querySelector('[name="e-account"]').value    = d.accountId;
-    li.querySelector('[name="e-to-account"]').value = d.toAccountId;
-  } else {
-    li.querySelector('[name="e-category"]').value    = d.categoryId;
-    li.querySelector('[name="e-budget-item"]').value = d.budgetItemId;
-  }
+  li.querySelector('[name="e-kind"]').value         = d.kind;
+  li.querySelector('[name="e-account"]').value      = d.accountId;
+  li.querySelector('[name="e-to-account"]').value   = d.toAccountId;
+  li.querySelector('[name="e-category"]').value     = d.categoryId;
+  li.querySelector('[name="e-budget-item"]').value  = d.budgetItemId;
+
+  li.querySelector('[name="e-kind"]').addEventListener("change", function() {
+    const t = this.value === "transfer";
+    li.querySelector(".e-to-account-field").classList.toggle("hidden", !t);
+    li.querySelector(".e-category-field").classList.toggle("hidden", t);
+    li.querySelector(".e-budget-item-field").classList.toggle("hidden", t);
+    li.querySelector(".e-account-label").textContent = t ? "From Account" : "Account";
+  });
+
   li.querySelector('[name="e-amount"]').focus();
 }
 
@@ -495,17 +509,22 @@ function closeRowEdit(li) {
 async function saveRowEdit(li) {
   const form = li.querySelector(".edit-form");
   const d    = li.dataset;
-  const isTransfer = d.kind === "transfer";
 
+  const kindVal = form.querySelector('[name="e-kind"]').value;
+  const isNewTransfer = kindVal === "transfer";
   const body = {
+    kind:        kindVal,
     amount:      parseFloat(form.querySelector('[name="e-amount"]').value),
     posted_at:   form.querySelector('[name="e-date"]').value,
+    account_id:  form.querySelector('[name="e-account"]').value  || null,
     description: form.querySelector('[name="e-description"]').value.trim() || null,
   };
-  if (isTransfer) {
-    body.account_id    = form.querySelector('[name="e-account"]').value    || null;
-    body.to_account_id = form.querySelector('[name="e-to-account"]').value || null;
+  if (isNewTransfer) {
+    body.to_account_id  = form.querySelector('[name="e-to-account"]').value || null;
+    body.category_id    = null;
+    body.budget_item_id = null;
   } else {
+    body.to_account_id  = null;
     body.category_id    = form.querySelector('[name="e-category"]').value    || null;
     body.budget_item_id = form.querySelector('[name="e-budget-item"]').value || null;
   }
@@ -522,6 +541,7 @@ async function saveRowEdit(li) {
       return;
     }
     const txn = await res.json();
+    li.dataset.kind         = txn.kind.name;
     li.dataset.amount       = txn.amount;
     li.dataset.postedAt     = txn.posted_at;
     li.dataset.accountId    = txn.account_id;
