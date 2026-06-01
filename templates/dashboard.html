@@ -127,30 +127,62 @@
       {% if active_budget['items'] %}
       <ul class="divide-y divide-slate-100">
         {% for item in active_budget['items'] %}
-        <li class="px-5 py-3">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-sm font-medium text-slate-700">{{ item.category_name }}</span>
-            <div class="text-right">
-              <span class="text-sm font-semibold {{ 'text-rose-600' if item.over_budget else 'text-slate-800' }}">
-                {{ item.spent | currency }}
-              </span>
-              <span class="text-xs text-slate-400"> / {{ item.limit | currency }}</span>
-              {% if item.over_budget %}
-              <span class="ml-1.5 text-xs font-bold bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded">OVER</span>
-              {% endif %}
-            </div>
-          </div>
-          {% set item_pct = [item.percent_used | float, 100.0] | min %}
-          {% if item.over_budget %}
-            {% set bar = "bg-rose-500" %}
-          {% elif item.percent_used | float > 75 %}
-            {% set bar = "bg-amber-400" %}
-          {% else %}
-            {% set bar = "bg-emerald-500" %}
-          {% endif %}
-          <div class="w-full bg-slate-200 rounded-full h-1.5">
-            <div class="{{ bar }} h-1.5 rounded-full" style="width: {{ item_pct }}%"></div>
-          </div>
+        {% set item_pct = [item.percent_used | float, 100.0] | min %}
+        {% if item.over_budget %}{% set bar = "bg-rose-500" %}
+        {% elif item.percent_used | float > 75 %}{% set bar = "bg-amber-400" %}
+        {% else %}{% set bar = "bg-emerald-500" %}{% endif %}
+        <li>
+          <details class="group">
+            <summary class="list-none cursor-pointer select-none">
+              <div class="px-5 pt-3 pb-1.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <svg class="w-3 h-3 text-slate-400 shrink-0 -rotate-90 group-open:rotate-0 transition-transform"
+                       fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                  <span class="text-sm font-medium text-slate-700 truncate">{{ item.category_name }}</span>
+                </div>
+                <div class="text-right shrink-0 ml-3">
+                  <span class="text-sm font-semibold {{ 'text-rose-600' if item.over_budget else 'text-slate-800' }}">
+                    {{ item.spent | currency }}
+                  </span>
+                  <span class="text-xs text-slate-400"> / {{ item.limit | currency }}</span>
+                  {% if item.over_budget %}
+                  <span class="ml-1.5 text-xs font-bold bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded">OVER</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="px-5 pb-2.5">
+                <div class="w-full bg-slate-200 rounded-full h-1.5">
+                  <div class="{{ bar }} h-1.5 rounded-full" style="width: {{ item_pct }}%"></div>
+                </div>
+              </div>
+            </summary>
+            {# Sub-items #}
+            <ul class="bg-slate-50 border-t border-slate-100 divide-y divide-slate-100">
+              {% for sub in item.sub_items %}
+              {% set sub_pct = [sub.percent_used | float, 100.0] | min %}
+              <li class="px-8 py-2">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs text-slate-600 truncate">{{ sub.name }}</span>
+                  <div class="text-right shrink-0 ml-3">
+                    <span class="text-xs font-semibold {{ 'text-rose-600' if sub.over_budget else 'text-slate-700' }}">
+                      {{ sub.spent | currency }}
+                    </span>
+                    <span class="text-xs text-slate-400"> / {{ sub.limit | currency }}</span>
+                    {% if sub.over_budget %}
+                    <span class="ml-1 text-xs font-bold bg-rose-100 text-rose-600 px-1 py-0.5 rounded">OVER</span>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-1">
+                  <div class="{{ 'bg-rose-500' if sub.over_budget else 'bg-indigo-400' }} h-1 rounded-full"
+                       style="width: {{ sub_pct }}%"></div>
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+          </details>
         </li>
         {% endfor %}
       </ul>

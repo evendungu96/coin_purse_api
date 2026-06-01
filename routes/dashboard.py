@@ -484,6 +484,7 @@ def _current_budget_summary(db: Session, user_id: UUID, today: date) -> dict | N
         .with_entities(
             BudgetItem.id.label("item_id"),
             BudgetItem.category_id,
+            BudgetItem.name.label("item_name"),
             Category.name.label("category_name"),
             BudgetItem.limit_amount,
         )
@@ -491,6 +492,9 @@ def _current_budget_summary(db: Session, user_id: UUID, today: date) -> dict | N
     )
 
     category_ids = [r.category_id for r in items]
+    item_ids = [r.item_id for r in items]
+
+    # Spend per category (for group totals)
     spend_rows = (
         active_query(db, Transaction)
         .filter(
@@ -509,6 +513,25 @@ def _current_budget_summary(db: Session, user_id: UUID, today: date) -> dict | N
     )
     spend_map = {r.category_id: Decimal(str(r.spent)) for r in spend_rows}
 
+    # Spend per budget item (for sub-item breakdown)
+    item_spend_rows = (
+        active_query(db, Transaction)
+        .filter(
+            Transaction.user_id == user_id,
+            Transaction.kind_id == expense_kind.id,
+            Transaction.posted_at >= budget.period_start,
+            Transaction.posted_at <= budget.period_end,
+            Transaction.budget_item_id.in_(item_ids),
+        )
+        .with_entities(
+            Transaction.budget_item_id,
+            func.coalesce(func.sum(Transaction.amount), 0).label("spent"),
+        )
+        .group_by(Transaction.budget_item_id)
+        .all()
+    )
+    item_spend_map = {r.budget_item_id: Decimal(str(r.spent)) for r in item_spend_rows}
+
     # Group budget items by category (multiple items per category → sum limits)
     grouped: dict = {}
     for r in items:
@@ -518,8 +541,23 @@ def _current_budget_summary(db: Session, user_id: UUID, today: date) -> dict | N
                 "category_id": cid,
                 "category_name": r.category_name,
                 "limit": Decimal(0),
+                "sub_items": [],
             }
-        grouped[cid]["limit"] += Decimal(str(r.limit_amount))
+        item_limit = Decimal(str(r.limit_amount))
+        item_spent = item_spend_map.get(r.item_id, Decimal(0))
+        item_pct = (item_spent / item_limit * 100) if item_limit > 0 else Decimal(0)
+        grouped[cid]["limit"] += item_limit
+        grouped[cid]["sub_items"].append(
+            {
+                "budget_item_id": r.item_id,
+                "name": r.item_name or r.category_name,
+                "limit": item_limit,
+                "spent": item_spent,
+                "remaining": item_limit - item_spent,
+                "percent_used": round(item_pct, 1),
+                "over_budget": item_spent > item_limit,
+            }
+        )
 
     out_items = []
     total_limit = Decimal(0)
@@ -538,6 +576,7 @@ def _current_budget_summary(db: Session, user_id: UUID, today: date) -> dict | N
                 "remaining": remaining,
                 "percent_used": round(percent_used, 1),
                 "over_budget": spent_amt > limit_amt,
+                "sub_items": g["sub_items"],
             }
         )
         total_limit += limit_amt
