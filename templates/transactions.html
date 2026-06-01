@@ -104,7 +104,7 @@
                   class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
             <option value="">— none —</option>
             {% for bi in budget_items %}
-            <option value="{{ bi.id }}">{{ bi.budget.name }} — {{ bi.category.name }}{% if bi.name %} ({{ bi.name }}){% endif %}</option>
+            <option value="{{ bi.id }}" data-category-id="{{ bi.category_id }}">{{ bi.budget.name }} — {{ bi.category.name }}{% if bi.name %} ({{ bi.name }}){% endif %}</option>
             {% endfor %}
           </select>
         </div>
@@ -272,6 +272,20 @@ function updateTransferDescription() {
 
 document.getElementById("account_id").addEventListener("change", updateTransferDescription);
 document.getElementById("to_account_id").addEventListener("change", updateTransferDescription);
+
+// ── Filter budget items by selected category ──────────────────
+function filterBudgetItems() {
+  const catId = document.getElementById("category_id").value;
+  const biSel = document.getElementById("budget_item_id");
+  for (const opt of biSel.options) {
+    if (!opt.value) continue; // keep the "— none —" placeholder
+    opt.hidden = catId ? opt.dataset.categoryId !== catId : false;
+  }
+  // Reset selection if the chosen item is now hidden
+  if (biSel.value && biSel.selectedOptions[0]?.hidden) biSel.value = "";
+}
+
+document.getElementById("category_id").addEventListener("change", filterBudgetItems);
 
 // ── Set today as default date ─────────────────────────────────
 document.getElementById("posted_at").value = new Date().toISOString().slice(0, 10);
