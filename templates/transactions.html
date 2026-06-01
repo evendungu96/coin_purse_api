@@ -109,6 +109,18 @@
           </select>
         </div>
 
+        {# Refunded Transaction — refunds only #}
+        <div id="refund-row" class="hidden">
+          <label class="block text-xs font-medium text-slate-600 mb-1">Original Transaction <span class="text-rose-500">*</span></label>
+          <select id="refunded_transaction_id"
+                  class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <option value="">— select transaction —</option>
+            {% for t in refundable_transactions %}
+            <option value="{{ t.id }}">{{ t.posted_at.strftime("%b %d, %Y") }} · {{ t.description or (t.category.name if t.category else "Expense") }} · ${{ "%.2f" | format(t.amount | float) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
         {# Error / success banners #}
         <div id="form-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"></div>
         <div id="form-success" class="hidden text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"></div>
@@ -253,6 +265,7 @@ document.querySelectorAll('input[name="kind"]').forEach(r => {
     document.getElementById("to-account-row").classList.toggle("hidden", kind !== "transfer");
     document.getElementById("category-row").classList.toggle("hidden", kind === "transfer");
     document.getElementById("budget-item-row").classList.toggle("hidden", kind === "transfer");
+    document.getElementById("refund-row").classList.toggle("hidden", kind !== "refund");
     updateKindButtons();
     updateTransferDescription();
   });
@@ -304,18 +317,22 @@ document.getElementById("txn-form").addEventListener("submit", async e => {
   const category_id  = (kind !== "transfer" && document.getElementById("category_id").value)
                          ? document.getElementById("category_id").value : null;
   const budget_item_id = document.getElementById("budget_item_id").value || null;
+  const refunded_transaction_id = kind === "refund"
+    ? (document.getElementById("refunded_transaction_id").value || null) : null;
   const amount       = parseFloat(document.getElementById("amount").value);
   const description  = document.getElementById("description").value.trim() || null;
   const posted_at    = document.getElementById("posted_at").value;
 
   if (!account_id) { showError("Please select an account."); return; }
   if (kind === "transfer" && !to_account_id) { showError("Please select a destination account."); return; }
+  if (kind === "refund" && !refunded_transaction_id) { showError("Please select the original transaction being refunded."); return; }
 
   const body = { kind, account_id, amount, posted_at };
-  if (to_account_id) body.to_account_id = to_account_id;
-  if (category_id)   body.category_id   = category_id;
-  if (description)   body.description   = description;
-  if (budget_item_id) body.budget_item_id = budget_item_id;
+  if (to_account_id)            body.to_account_id            = to_account_id;
+  if (category_id)              body.category_id              = category_id;
+  if (description)              body.description              = description;
+  if (budget_item_id)           body.budget_item_id           = budget_item_id;
+  if (refunded_transaction_id)  body.refunded_transaction_id  = refunded_transaction_id;
 
   try {
     const res = await fetch(`/users/${USER_ID}/transactions`, {
@@ -336,6 +353,7 @@ document.getElementById("txn-form").addEventListener("submit", async e => {
     document.getElementById("amount").value = "";
     document.getElementById("description").value = "";
     document.getElementById("budget_item_id").value = "";
+    document.getElementById("refunded_transaction_id").value = "";
   } catch (err) {
     showError("Network error. Please try again.");
   }

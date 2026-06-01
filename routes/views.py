@@ -276,6 +276,17 @@ def ui_transactions(
         .all()
     )
 
+    # Expense transactions available to link as refund targets
+    refundable_transactions = (
+        active_query(db, Transaction)
+        .filter(Transaction.user_id == user_id)
+        .join(TransactionKind, Transaction.kind_id == TransactionKind.id)
+        .filter(TransactionKind.name == "expense")
+        .order_by(Transaction.posted_at.desc())
+        .limit(200)
+        .all()
+    )
+
     # Recent transactions — last 50
     transactions = (
         active_query(db, Transaction)
@@ -321,6 +332,7 @@ def ui_transactions(
             "categories": categories,
             "kinds": kinds,
             "budget_items": budget_items,
+            "refundable_transactions": refundable_transactions,
             "transactions": transactions,
             "kind_counts": kind_counts,
             "daily_labels": daily_labels,
