@@ -199,6 +199,13 @@
                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                 </svg>
               </button>
+              <button onclick="openTxnModal('{{ item.id }}', '{{ item.category_id }}', '{{ item.category_name | e }}', '{{ (item.name or item.category_name) | e }}', '{{ item.limit_amount }}')"
+                      class="text-slate-300 hover:text-emerald-500 transition-colors"
+                      title="Create transaction">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+              </button>
               <button onclick="deleteBudgetItem('{{ b.id }}', '{{ item.id }}')"
                       class="text-xs text-rose-500 hover:text-rose-700 font-medium ml-2">Remove</button>
             </div>
@@ -506,6 +513,132 @@ function initTrendChart() {
     },
   });
 }
+
+// ── Quick-create transaction from budget item ─────────────────
+function openTxnModal(budgetItemId, categoryId, categoryName, description, limitAmount) {
+  document.getElementById("txn-modal-budget-item-id").value = budgetItemId;
+  document.getElementById("txn-modal-category-id").value = categoryId;
+  document.getElementById("txn-modal-category-name").textContent = categoryName;
+  document.getElementById("txn-modal-description").value = description;
+  document.getElementById("txn-modal-amount").value = parseFloat(limitAmount).toFixed(2);
+  document.getElementById("txn-modal-date").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("txn-modal-kind").value = "expense";
+  document.getElementById("txn-modal-account").value = "";
+  document.getElementById("txn-modal-error").classList.add("hidden");
+  document.getElementById("txn-modal").classList.remove("hidden");
+  document.getElementById("txn-modal-account").focus();
+}
+
+function closeTxnModal() {
+  document.getElementById("txn-modal").classList.add("hidden");
+}
+
+async function submitTxnModal(e) {
+  e.preventDefault();
+  const errEl = document.getElementById("txn-modal-error");
+  errEl.classList.add("hidden");
+
+  const account_id = document.getElementById("txn-modal-account").value;
+  if (!account_id) {
+    errEl.textContent = "Please select an account.";
+    errEl.classList.remove("hidden");
+    return;
+  }
+
+  const body = {
+    kind:           document.getElementById("txn-modal-kind").value,
+    account_id,
+    category_id:    document.getElementById("txn-modal-category-id").value || null,
+    budget_item_id: document.getElementById("txn-modal-budget-item-id").value || null,
+    amount:         parseFloat(document.getElementById("txn-modal-amount").value),
+    posted_at:      document.getElementById("txn-modal-date").value,
+    description:    document.getElementById("txn-modal-description").value.trim() || null,
+  };
+
+  const res = await apiFetch("POST", `/users/${USER_ID}/transactions`, body);
+  if (res.ok) {
+    closeTxnModal();
+    toast("Transaction saved!");
+  } else {
+    const d = await res.json().catch(() => ({}));
+    errEl.textContent = d.detail || "Failed to create transaction.";
+    errEl.classList.remove("hidden");
+  }
+}
+
+document.getElementById("txn-modal").addEventListener("click", e => {
+  if (e.target === document.getElementById("txn-modal")) closeTxnModal();
+});
 </script>
+
+{# ── Quick-create transaction modal ──────────────────────────── #}
+<div id="txn-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-slate-700">Quick Transaction</h3>
+      <button type="button" onclick="closeTxnModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
+    <form id="txn-modal-form" class="px-6 py-5 space-y-4" onsubmit="submitTxnModal(event)">
+      <input type="hidden" id="txn-modal-category-id" />
+      <input type="hidden" id="txn-modal-budget-item-id" />
+
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">Category</label>
+        <p id="txn-modal-category-name" class="text-sm font-medium text-slate-700 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200"></p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Type</label>
+          <select id="txn-modal-kind" class="input-field w-full">
+            <option value="expense" selected>Expense</option>
+            <option value="income">Income</option>
+            <option value="refund">Refund</option>
+            <option value="transfer">Transfer</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Date</label>
+          <input id="txn-modal-date" type="date" class="input-field w-full" required />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-600 mb-1">Account</label>
+        <select id="txn-modal-account" class="input-field w-full" required>
+          <option value="">— select account —</option>
+          {% for a in accounts %}
+          <option value="{{ a.id }}">{{ a.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-600 mb-1">Amount</label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+          <input id="txn-modal-amount" type="number" min="0" step="0.01"
+                 class="input-field w-full pl-7" required />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-600 mb-1">Description <span class="text-slate-400">(optional)</span></label>
+        <input id="txn-modal-description" type="text" class="input-field w-full" placeholder="e.g. Weekly groceries" />
+      </div>
+
+      <div id="txn-modal-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"></div>
+
+      <div class="flex gap-3 pt-1">
+        <button type="submit" class="btn-primary flex-1">Save Transaction</button>
+        <button type="button" onclick="closeTxnModal()" class="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 {% endblock %}

@@ -141,6 +141,12 @@ def ui_budgets(
         .order_by(Category.name)
         .all()
     )
+    accounts = (
+        active_query(db, Account)
+        .filter(Account.user_id == user_id)
+        .order_by(Account.name)
+        .all()
+    )
 
     # Build source-budget name map (may include soft-deleted originals)
     active_id_map = {b.id: b.name for b in budgets}
@@ -234,6 +240,7 @@ def ui_budgets(
             "user_id": str(user_id),
             "budgets": budget_data,
             "categories": categories,
+            "accounts": accounts,
             "default_start": first_of_month.isoformat(),
             "default_end": last_of_month.isoformat(),
             "template_budget_id": str(template_budget.id) if template_budget else "",
