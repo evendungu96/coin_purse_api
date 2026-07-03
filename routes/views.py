@@ -148,6 +148,25 @@ def ui_budgets(
         .all()
     )
 
+    _pill_palette = [
+        "bg-indigo-100 text-indigo-700",
+        "bg-emerald-100 text-emerald-700",
+        "bg-rose-100 text-rose-700",
+        "bg-amber-100 text-amber-700",
+        "bg-purple-100 text-purple-700",
+        "bg-sky-100 text-sky-700",
+        "bg-pink-100 text-pink-700",
+        "bg-teal-100 text-teal-700",
+        "bg-orange-100 text-orange-700",
+        "bg-cyan-100 text-cyan-700",
+        "bg-lime-100 text-lime-700",
+        "bg-fuchsia-100 text-fuchsia-700",
+    ]
+    category_colors = {
+        str(cat.id): _pill_palette[i % len(_pill_palette)]
+        for i, cat in enumerate(categories)
+    }
+
     # Build source-budget name map (may include soft-deleted originals)
     active_id_map = {b.id: b.name for b in budgets}
     source_ids = {b.source_budget_id for b in budgets if b.source_budget_id}
@@ -241,6 +260,7 @@ def ui_budgets(
             "budgets": budget_data,
             "categories": categories,
             "accounts": accounts,
+            "category_colors": category_colors,
             "default_start": first_of_month.isoformat(),
             "default_end": last_of_month.isoformat(),
             "template_budget_id": str(template_budget.id) if template_budget else "",
